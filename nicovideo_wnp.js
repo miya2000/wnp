@@ -9,7 +9,7 @@
 // @exclude    http://*http://*
 // ==/UserScript==
 /*
- * $Date:: 2008-09-21 20:28:20 +0900#$
+ * $Date:: 2008-09-23 19:14:42 +0900#$
  */
 /*
  Open Niconico (http://www.nicovideo.jp/),
@@ -529,15 +529,23 @@ var svg_xml_base = [
 '</defs>',
 '<rect width="380" height="250" fill="white" />',
 '<g transform="translate(0,50)">',
-'    <image x="10" width="130" height="100" xlink:href="%u" />',
-'    <image id="mirror" x="10" width="130" height="100" xlink:href="%u" transform="matrix(1,0,0,-1,0,200)" />',
+'    <image x="10" width="130" height="100" xlink:href="%u%" />',
+'    <image id="mirror" x="10" width="130" height="100" xlink:href="%u%" transform="matrix(1,0,0,-1,0,200)" />',
 '    <rect id="grad" y="100" width="150" height="100" fill="url(#liGrad)" />',
 '</g>',
 '<g clip-path="url(#clip_txt)" transform="translate(150,50)" font-family="Verdana,sans-serif" font-weight="bold">',
-'    <text y="30" style="font-size: 15px;">%t',
+'    <text y="30" style="font-size: 15px;">%t%',
 '        <animate attributeName="x" values="0;0;-300" keyTimes="0;0.25;1" dur="10s" repeatDur="indefinite" /> ',
 '    </text>',
-'    <text x="5" y="80" style="font-size: 12px;">%c</text>',
+'    <text x="5" y="75" style="font-size: 12px;">%c%</text>',
+'    <g id="videoinfo" style="display: none">',
+'        <text x="5"  y="110" style="font-size: 10px;">\u518D\u751F</text>',
+'        <text x="60" y="110" style="font-size: 10px;" id="count">%vp%</text>',
+'        <text x="5"  y="120" style="font-size: 10px;">\u30B3\u30E1\u30F3\u30C8</text>',
+'        <text x="60" y="120" style="font-size: 10px;">%vc%</text>',
+'        <text x="5"  y="130" style="font-size: 10px;">\u30DE\u30A4\u30EA\u30B9\u30C8</text>',
+'        <text x="60" y="130" style="font-size: 10px;">%vm%</text>',
+'    </g>',
 '</g>',
 '<script type="text/javascript">',
 '<![CDATA[',
@@ -547,6 +555,9 @@ var svg_xml_base = [
 '    }',
 '    if (navigator.userAgent.indexOf("Safari") != -1) {',
 '        document.getElementById("mirror").setAttribute("transform", "matrix(1,0,0,-1,0,199)");',
+'    }',
+'    if (document.getElementById("count").textContent.length > 0) {',
+'        document.getElementById("videoinfo").style.display = "";',
 '    }',
 ']]>',
 '</script>',
@@ -647,6 +658,26 @@ var svg_mime_type = 'image/svg+xml';
             return dv.innerHTML;
         };
     })()
+
+    function parseDate(s) {
+        if (!s) return new Date(0);
+        if (s.indexOf('T') > 0) return new Date(s.replace(/T/, ' ').replace(/\+09:00/, ''));
+        return new Date(s);
+    }
+    function formatDate(d) {
+        return d.getFullYear() + ('/' + (d.getMonth()+1) + '/' + d.getDate() + ' ' + d.getHours() + ':' + d.getMinutes() + ':' + d.getSeconds()).replace(/(\D)(\d)(?!\d)/g, '$10$2');
+    }
+    function formatTime(s) {
+        var s = Math.floor(Number(s));
+        var hour = Math.floor(s / 60 / 60),
+            min  = Math.floor(s / 60),
+            sec  = s % 60;
+        return (hour ? (hour + ':') : '') + (min + ':' + sec).replace(/:(\d)(?!\d)/g, ":0$1");
+    }
+    function formatNumber(d) {
+        // http://nanto.asablo.jp/blog/2007/12/07/2479257
+        return d.toString().replace(/(\d{1,3})(?=(?:\d\d\d)+$)/g, "$1,");
+    }
 
     function getAbsolutePosition(el) {
         var p = el, x = 0, y = 0;
@@ -1196,6 +1227,9 @@ var svg_mime_type = 'image/svg+xml';
             }
             this.alternativeElement = element;
             this.alternativeElementSize = { width: width, height: height };
+            if (this.style == WNPCore.STYLE_ALTERNATE) {
+                this.alternativeView();
+            }
         },
         play : function(videoinfo) {
             // resume when 0 arguments.
@@ -1492,6 +1526,13 @@ var svg_mime_type = 'image/svg+xml';
             if (to < 0  ) to = 0;
             flvplayer.ext_setVolume(to);
             return to;
+        },
+        commentNum : function() {
+            if (!this.isPlaying) return 0;
+            var flvplayer = this._nicoframe.contentWindow.document.getElementById('flvplayer');
+            if (!flvplayer) return 0;
+            var num = Number(flvplayer.GetVariable('last_resno'));
+            return num;
         },
         observeLoad : function() {
             var self = this;
@@ -1969,14 +2010,14 @@ var svg_mime_type = 'image/svg+xml';
         var vol = this.wnpCore.volume();
         this.wnpWindow.document.getElementById('WNP_C_NICO_VOLUMEBAR').firstChild.firstChild.style.width = Math.ceil(vol / 100 * 100) + '%';
     };
-    WNP.prototype.observeStatusTimerStart = function() {
-        this.observeStatusTimerStop();
+    WNP.prototype.observeVideoStart = function() {
+        this.observeVideoStop();
         var self = this;
         this.observeControlStatusTid = this.wnpWindow.setInterval(function() {
             self.updateControlPanelStatus();
         }, 1000);
     };
-    WNP.prototype.observeStatusTimerStop = function() {
+    WNP.prototype.observeVideoStop = function() {
         if (this.observeControlStatusTid) {
             this.wnpWindow.clearInterval(this.observeControlStatusTid);
         }
@@ -2289,15 +2330,16 @@ var svg_mime_type = 'image/svg+xml';
             self.updatePlaylistURI();
         };
         this.wnpCore.onstart = function() {
+            self.updateAlternativeView();
             self.wnpWindow.clearTimeout(self.timeoutTid);
-            self.observeStatusTimerStart();
+            self.observeVideoStart();
         };
         this.wnpCore.onerror = function() {
             self.showStatus('this video is deleted. go to next.', 5);
             self.next();
         };
         this.wnpCore.onfinish = function() {
-            self.observeStatusTimerStop();
+            self.observeVideoStop();
             if ((new Date() - (self.lastOperationTime || 0)) > WNP_OFFTIMER * 60 * 1000) {
                 self.stop();
             }
@@ -2404,19 +2446,41 @@ var svg_mime_type = 'image/svg+xml';
             }, sec * 1000);
         }
     };
-    WNP.prototype.setAlternativeView = function(videoinfo) {
-        var thmb_url = videoinfo.thumbnail || 'about:blank';
-        var title    = videoinfo.title || videoinfo.id || '';
-        title = escapeHTML(title);
-        var total = this.playlistIterator.count();
-        var current = this.playlistIterator.indexOf(this.playlistIterator.item) + 1;
-        var svg_xml = svg_xml_base.replace(/%u/g, thmb_url).replace(/%t/g, title).replace(/%c/g, current + ' / ' + total);
-        var svg_url = 'data:' + svg_mime_type + ';charset=utf-8,' + encodeURIComponent(svg_xml);
+    WNP.prototype.setAlternativeView = function(info) {
         var iframe = this.wnpWindow.document.createElement('iframe');
-        iframe.src = svg_url;
+        this.alternativeView = iframe;
+        this.updateAlternativeView(info);
         this.wnpCore.setAlternativeView(iframe, 380, 230);
     };
-
+    WNP.prototype.updateAlternativeView = function(info) {
+        if (!this.alternativeView) return;
+        var videoinfo = info || this.wnpCore.videoinfo;
+        var thmb_url = videoinfo.thumbnail || 'about:blank';
+        var title    = escapeHTML(videoinfo.title || videoinfo.id || '');
+        var total = this.playlistIterator.count();
+        var current = this.playlistIterator.indexOf(this.playlistIterator.item) + 1;
+        var video_play, video_comment, video_mylist;
+        if (videoinfo.viewCount != null) {
+            video_play    = formatNumber(Number(videoinfo.viewCount));
+            video_comment = formatNumber(this.wnpCore.commentNum());
+            video_mylist  = formatNumber(videoinfo.mylistCount);
+        }
+        else {
+            video_play = video_comment = video_mylist = '';
+        }
+        var svg_xml = svg_xml_base.replace(/%.+?%/g, function(r){
+            if (r == '%u%') return thmb_url;
+            if (r == '%t%') return title;
+            if (r == '%c%') return current + ' / ' + total;
+            if (r == '%vp%') return video_play;
+            if (r == '%vc%') return video_comment;
+            if (r == '%vm%') return video_mylist;
+            return "";
+        });
+        var svg_url = 'data:' + svg_mime_type + ';charset=utf-8,' + encodeURIComponent(svg_xml);
+        this.alternativeView.src = svg_url;
+    };
+    
     window[WNP_GLOBAL_NAME] = WNP;
 
     var tooltip = null;
