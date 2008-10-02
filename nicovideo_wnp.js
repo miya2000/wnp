@@ -9,7 +9,7 @@
 // @exclude    http://*http://*
 // ==/UserScript==
 /*
- * $Date:: 2008-09-23 19:14:42 +0900#$
+ * $Date:: 2008-10-03 00:42:35 +0900#$
  */
 /*
  Open Niconico (http://www.nicovideo.jp/),
@@ -30,7 +30,7 @@ var MAIN = function() {
     var WNP_COMMENT_OFF_ON_STARTUP = false;            // "comment-off" on startup.
     var WNP_ALWAYS_ON_TOP_ON_STARTUP = false;          // "always on top" on startup.
     var WNP_PLAYLIST_STYLE_SIMPLE_ON_STARTUP = false;  // "playlist style simple" on startup.
-    var WNP_PLAYER_CONTROL_WITH_COMMENT_INPUT = false; // show comment input when the wnp shows nicovideo player controls.
+    var WNP_PLAYER_CONTROL_WITH_COMMENT_INPUT = true;  // show comment input when the wnp shows nicovideo player controls.
     var WNP_SKIP_DELETED_MOVIE = false;                // skip deleted movie.
     var WNP_MENU_WIDTH_RATIO = 50;  // (%)   menu width ratio when showing menu.
     var WNP_OBSERVE_INTERVAL = 500; // (ms)  observe interval.
@@ -53,7 +53,7 @@ var MAIN = function() {
     var WNP_TITLE = 'WNP';
     var MINITV_TITLE = 'miniTV';
     var moz = (navigator.userAgent.indexOf("Gecko/") >= 0);
-    var opera9_5 = (navigator.appName.indexOf("Opera") >= 0 && /^9.5/.test(opera.version())); // I hope this bug will fix at Opera 10.
+    var opera9_5 = (navigator.appName.indexOf("Opera") >= 0 && /^9.5/.test(opera.version())); // 
     
     var html = [
 '<!DOCTYPE html PUBLIC "-\/\/W3C\/\/DTD HTML 4.01 Transitional\/\/EN" "http:\/\/www.w3.org/TR/html4/loose.dtd">',
@@ -488,6 +488,12 @@ var MAIN = function() {
 '    border: #BCD solid;',
 '    border-width: 1px 3px 1px 1px;',
 '    color: #335577;',
+'    opacity: 0.4; ',
+'    position: absolute; ',
+'    z-index: 999; ',
+'}',
+'.wnp_tooltip:hover {',
+'    opacity: 1',
 '}',
 '.wnp_tooltip a, .wnp_tooltip span {',
 '    cursor: pointer;',
@@ -1553,7 +1559,15 @@ var svg_mime_type = 'image/svg+xml';
                     var flvplayer = nicoDocument.getElementById('flvplayer');
                     if (!flvplayer) return;
                     try {
-                        if (flvplayer.ext_getStatus() != 'playing') return;
+                        var status = flvplayer.ext_getStatus();
+                        if (status == 'paused') {
+                            flvplayer.ext_play(1);
+                        }
+                        else if (status == 'playing') {
+                        }
+                        else {
+                            return;
+                        }
                     } catch(e) {
                         return;
                     }
@@ -2333,6 +2347,16 @@ var svg_mime_type = 'image/svg+xml';
             self.updateAlternativeView();
             self.wnpWindow.clearTimeout(self.timeoutTid);
             self.observeVideoStart();
+            /*
+            if (opera9_5) {
+                // visit.
+                (function(){
+                    var w = self.wnpWindow.open(url, '', 'width=1,height=1,menubar=no,toolbar=no,scrollbars=no,top=0,left=10000');
+                    w.blur();
+                    self.wnpWindow.setTimeout(function(){w.close()},1000);
+                })();
+            }
+            */
         };
         this.wnpCore.onerror = function() {
             self.showStatus('this video is deleted. go to next.', 5);
@@ -2363,6 +2387,7 @@ var svg_mime_type = 'image/svg+xml';
         wnpDocument.title = WNP_TITLE;
         removeClass(this.wnpElement, 'playing');
         this.wnpCore.stop();
+        this.wnpWindow.document.getElementById('WNP_C_NICO_SEEKBAR').firstChild.firstChild.style.width = '0';
     };
     WNP.prototype.prev = function() {
         this.playlistIterator.previous();
@@ -2523,15 +2548,6 @@ var svg_mime_type = 'image/svg+xml';
                     '<a href="javascript:void(0)" rel="nofollow"><img src="about:blank" style="display:none"><br style="display:none">add</a>'
                 ].join('');
             }
-            tooltip.style.cssText = 'position: absolute; display: none; opacity: 0.4; z-index: 999; ';
-            $e(tooltip).addEventListener('mouseover', function(e) {
-                tooltip.style.opacity = '1';
-                e.stopPropagation();
-            }, false);
-            $e(tooltip).addEventListener('mouseout', function(e) {
-                tooltip.style.opacity = '0.4';
-                e.stopPropagation();
-            }, false);
             $e(tooltip.childNodes[0]).addEventListener('click', function(e) {
                 if (currentpls) WNP.open(currentpls);
                 e.preventDefault();
@@ -2579,6 +2595,10 @@ var svg_mime_type = 'image/svg+xml';
 
         if (tooltipTid) clearTimeout(tooltipTid);
         tooltipTid = setTimeout(function() {
+            if (getStyle(tooltip, 'opacity') == '1') {
+                setTimeout(arguments.callee, 2000);
+                return;
+            }
             tooltip.style.display = 'none';
             tooltipTid = null;
             currentpls = null;
@@ -2587,7 +2607,7 @@ var svg_mime_type = 'image/svg+xml';
     function showControlPanel() {
         var controlPanel = document.createElement('div');
         appendClass(controlPanel, 'wnp_tooltip');
-        controlPanel.style.cssText = 'position: fixed; bottom: 5px; right: 5px; width: 150px; z-index: 998; ';
+        controlPanel.style.cssText = 'position: fixed; bottom: 5px; right: 5px; width: 150px; z-index: 998; opacity: 1; ';
         var play_href = 'javascript:' + encodeURIComponent('void((window.' + WNP_GLOBAL_NAME + ')?' + WNP_GLOBAL_NAME + '.open(\'' + location.href + '\'):location.href=\'' + location.href + '\')');
         var add_href = 'javascript:' + encodeURIComponent('void((window.' + WNP_GLOBAL_NAME + ')?' + WNP_GLOBAL_NAME + '.add(\'' + location.href + '\'):location.href=\'' + location.href + '\')');
         var title = document.title;
