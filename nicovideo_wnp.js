@@ -3,7 +3,7 @@
 // @description windowised nicovideo player.
 // @author      miya2000
 // @namespace   http://d.hatena.ne.jp/miya2000/
-// @version     1.0.0
+// @version     1.0.1
 // @include     http://www.nicovideo.jp/*
 // @exclude     http://www.nicovideo.jp/watch/*
 // @exclude     http://*http*
@@ -3012,7 +3012,11 @@ function BUILD_WNP(T) {
             this.wnpCore.setMute(oldCore.isMute);
             //this.wnpCore.setRepeat(oldCore.isRepeat);
             //this.wnpCore.volumeTo(oldCore.volume());
-            oldCore.detach();
+            oldCore.pause();
+            oldCore.hide();
+            this.wnpWindow.setTimeout(function() { // for Opera 10 freeze.
+                oldCore.detach();
+            }, 10);
             this.wnpCore.show();
         }
 
