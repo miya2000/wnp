@@ -1498,6 +1498,7 @@ function BUILD_WNP(T) {
      *   start            - fire event when the video started.
      *   error            - fire event when could't load video. (deleted or other)
      *   finish           - fire event when finished playing video.
+     *   fatal            - fire event when fatal error occured. (logout, overaccess)
      * ------------------- *
      */
     function WNPCore() {
@@ -2042,13 +2043,23 @@ function BUILD_WNP(T) {
                     if (typeof self.onerror == 'function') try { self.onerror(event); } catch(e) { postError(e) }
                     return;
                 }
-                if (nico.window.User && !nico.window.User.id) { // logout.
-                    nico.window.alert('\u30ED\u30B0\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044');
-                    var event = { type: 'error', message : 'unexpected redirect.' };
+                // logout check.
+                if (nico.window.User && !nico.window.User.id) {
+                    var event = { type: 'fatal', message : '\u30ED\u30B0\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044' };
                     self.dispatchEvent(event);
-                    if (typeof self.onerror == 'function') try { self.onerror(event); } catch(e) { postError(e) }
-                    self.stop();
+                    if (typeof self.onfatal == 'function') try { self.onfatal(event); } catch(e) { postError(e) }
                     return;
+                }
+                // over access.
+                var h1 = nico.document.getElementsByTagName('h1')[0];
+                if (h1) {
+                    var h1Text = h1.textContent || h1.innerText;
+                    if (h1Text.indexOf('\u77ED\u6642\u9593\u3067\u306E\u9023\u7D9A\u30A2\u30AF\u30BB\u30B9') >= 0 && nico.document.title.indexOf(h1Text) < 0) {
+                        var event = { type: 'fatal', message : h1Text };
+                        self.dispatchEvent(event);
+                        if (typeof self.onfatal == 'function') try { self.onfatal(event); } catch(e) { postError(e) }
+                        return;
+                    }
                 }
                 if (self.errorWhenDeleted) {
                     // delete check 1.
@@ -2987,13 +2998,6 @@ function BUILD_WNP(T) {
         var playinfo = createPlayInfo(currentItem);
         var videoinfo = createVideoInfo(playinfo);
         var title = videoinfo.title;
-        
-        if (this.wnpCore.isPlaying && this.wnpCore.videoinfo.id == videoinfo.id) {
-            this.wnpCore.layout();
-            this.wnpCore.seekTo(0);
-            this.wnpCore.resume();
-            return;
-        }
 
         this.scheduleCancel();
         this.observingVideoStop();
@@ -3092,6 +3096,11 @@ function BUILD_WNP(T) {
         this.wnpCore.onerror = function(e) {
             self.showStatus((e.message || 'error.') + ' go to next.', 5);
             self.next();
+        };
+        this.wnpCore.onfatal = function(e) {
+            self.stop();
+            self.wnpWindow.alert(e.message || 'fatal error.');
+            self.showStatus((e.message || 'fatal error.'), 5, true);
         };
         this.wnpCore.onfinish = function() {
             if (self.wnpWindow.document.getElementById('WNP_C_USE_HISTOPRY').checked) {
@@ -3224,7 +3233,7 @@ function BUILD_WNP(T) {
         wnpCore.observeInterval = this.wnpCore.observeInterval;
         wnpCore.errorWhenDeleted = this.wnpCore.errorWhenDeleted;
         wnpCore.hide();
-        wnpCore.onerror = function() {
+        wnpCore.onerror = wnpCore.onfatal = function() {
             wnpCore.detach();
             preloads.remove(videoinfo.id);
         };
@@ -3355,17 +3364,23 @@ WNP.BUILD_WNP = BUILD_WNP;
     WNP.play = function(playlist, name) {
         var wnpWindow = this.wnp(name);
         if (!playlist) playlist = createPlayInfo(document.getElementsByTagName('body')[0]);
-        wnpWindow[Consts.WNP_GLOBAL_NAME].play(playlist);
+        setTimeout(function() {
+            wnpWindow[Consts.WNP_GLOBAL_NAME].play(playlist);
+        }, 50);
     };
     WNP.add = function(playlist, name, start) {
         var wnpWindow = this.wnp(name);
         if (!playlist) playlist = createPlayInfo(document.getElementsByTagName('body')[0]);
-        wnpWindow[Consts.WNP_GLOBAL_NAME].add(playlist);
+        setTimeout(function() {
+            wnpWindow[Consts.WNP_GLOBAL_NAME].add(playlist);
+        }, 50);
     };
     WNP.insert = function(playlist, name, start) {
         var wnpWindow = this.wnp(name);
         if (!playlist) playlist = createPlayInfo(document.getElementsByTagName('body')[0]);
-        wnpWindow[Consts.WNP_GLOBAL_NAME].insert(playlist);
+        setTimeout(function() {
+            wnpWindow[Consts.WNP_GLOBAL_NAME].insert(playlist);
+        }, 50);
     };
     WNP.wnp = function(name) {
         var loc = 'javascript:void(0)'; /*@cc_on loc = ''; @*/;
@@ -3434,7 +3449,7 @@ WNP.BUILD_WNP = BUILD_WNP;
                 }
             }
 
-            var title = findVideoTitle(a) + ' - \u30CB\u30B3\u30CB\u30B3\u52D5\u753B';
+            var title = findVideoTitle(a);
             if (pls.title && !pls.title[pls.items[0]]) {
                 pls.title[pls.items[0]] = title;
             }
