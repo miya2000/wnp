@@ -12,6 +12,7 @@ package {
 			if (host == "www.nicovideo.jp") {
 				ExternalInterface.addCallback("getData", getData);
 				ExternalInterface.addCallback("setData", setData);
+				ExternalInterface.addCallback("clear", clear);
 			}
 		}
 		private function setData(key:String, data:Object, name:String = null):String {
@@ -24,6 +25,11 @@ package {
 			var localName:String = "wnp" + (name ? ("_" + name) : "");
 			var so:SharedObject = SharedObject.getLocal(localName);
 			return so.data[key];
+		}
+		private function clear(name:String = null):void {
+			var localName:String = "wnp" + (name ? ("_" + name) : "");
+			var so:SharedObject = SharedObject.getLocal(localName);
+			so.clear();
 		}
 	}
 }
