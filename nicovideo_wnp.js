@@ -3,7 +3,7 @@
 // @description windowised nicovideo player.
 // @author      miya2000
 // @namespace   http://d.hatena.ne.jp/miya2000/
-// @version     1.0.1
+// @version     1.0.5
 // @include     http://www.nicovideo.jp/*
 // @exclude     http://www.nicovideo.jp/watch/*
 // @exclude     http://*http*
@@ -32,27 +32,29 @@
 // ==== wnp ==== //
 (function() {
     
-    if (window.name == 'wnp') return;
+    if (typeof window.wnp != 'undefined') return;
     
     var WNP = {};
     
     // ==== Prefs ==== //
     WNP.Prefs = {
-        WIDTH  : 610,  // startup window size.
-        HEIGHT : 470,  //
-        LOOP_ON_STARTUP : false,                   // "loop" on startup.
-        COMMENT_OFF_ON_STARTUP : false,            // "comment-off" on startup.
-        ALWAYS_ON_TOP_ON_STARTUP : false,          // "always on top" on startup.
-        PLAYLIST_STYLE_SIMPLE_ON_STARTUP : false,  // "playlist style simple" on startup.
-        REMOVE_ON_FINISH_ON_STARTUP : true,        // "remove on finish" on startup.
-        USE_HISTORY_ON_STARTUP : true,             // "use history" on startup.
-        SKIP_DELETED_MOVIE : true,                 // skip deleted movie.
-        MENU_WIDTH_RATIO : 50,  // (%)   menu width ratio when showing menu.
-        OBSERVE_INTERVAL : 500, // (ms)  observe interval.
-        PAGE_TIMEOUT  : 80,     // (sec) page load timeout.
-        VIDEO_TIMEOUT : 60,     // (sec) video play timeout.
-        OFFTIMER      : 120,    // (min) off timer.
-        LOOP_BREAK_COUNT : 3    // exit from loop video by specified count. 
+        /*
+        observe_interval : 500, // (ms)  observe interval.
+        page_timeout     : 80,  // (sec) page load timeout.
+        video_timeout    : 60,  // (sec) video play timeout.
+        menu_width_ratio : 50,  // (%)   menu width ratio when showing menu.
+        loop               : false,       // "loop" on startup.
+        comment_off        : false,       // "comment-off" on startup.
+        always_on_top      : false,       // "always on top" on startup.
+        playlist_style_simple : false,    // "playlist style simple" on startup.
+        remove_on_finish   : true,        // "remove on finish" on startup.
+        use_history        : true,        // "use history" on startup.
+        skip_deleted_video : true,        // "skip deleted movie" on startup.
+        use_offtimer     : true,  // use offtimer or not.
+        offtimer_minute  : 60,    // (min) off timer.
+        use_loop_break   : true,  // use loop break or not.
+        loop_break_count : 3      // exit from loop video by specified count. 
+        */
     };
     
     // ==== const ==== //
@@ -63,6 +65,10 @@
         WNP_IMAGE_PLAY  : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAPCAYAAADkmO9VAAAAt0lEQVQ4y2NgoCL4%2F%2F8%2FXnnB0NBQFyAtQA0DJVatWtUPVHALRAP5kpQaqAmUvAzE%2F4D4OxDvB4rZAzE7uQZqASWvQA2EgSchISG5oKAgy4X%2F%2Fv27DMR%2Fgfg%2FDAPBm5UrV07AFQSkuvA%2FoSAgx0BkcAnkE3K8jAxgXn8CTFL56OFJjgvxxjipBr4BpskJ%2BNIkPgO1gV67geZFvEmGkIFKQMntQPyB2ERNTF6WAnoxjdhsR4yBZJU2AAcDLeBOG3M7AAAAAElFTkSuQmCC',
         WNP_IMAGE_PAUSE : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAPCAYAAADkmO9VAAAAe0lEQVQ4y2NgoCL4%2F%2F8%2FfgWhoaFuxIgRYyDLqlWrooAKfoJoEB%2BHGCOxBnIAJTf9h4BNID4OsYEzkP3fv38b%2F0HARhAfhxjDqJeHsJc5gN7aAdIJomEGYhEj2stsQMl2UGCBaBAfhxjRLgQDYBZrICBGmoG4NOISAxkIAIbuKTCbOZywAAAAAElFTkSuQmCC',
         WNP_IMAGE_EMPTY : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQI12P4DwQACfsD%2FWMmxY8AAAAASUVORK5CYII%3D',
+        WNP_IMAGE_PREF  : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAOUlEQVQoz2NgoCbg4uIC0x9%2B%2FP%2BPjInSTHVNeA3Bp4lojTCFRDkbXSNR%2Fh1YTSQHP20jm%2Bg4ohYAAAU6%2FYWVfvgIAAAAAElFTkSuQmCC',
+        WNP_STORAGE_SWF : 'http://github.com/miya2000/wnp/raw/master/storage/wnp.swf',
+        WNP_INITIAL_PLAYER_WIDTH  : 610,
+        WNP_INITIAL_PLAYER_HEIGHT : 470,
         ORG_PLAYER_VIEW_WIDTH  : 544,
         ORG_PLAYER_VIEW_HEIGHT : 384,
         ORG_PLAYER_CONTROL_HEIGHT : 63,
@@ -132,6 +138,21 @@
         control_always_on_top: 'yellow'
     };
     WNP.Colors = Colors;
+    
+    var Lang = {
+        PREF_SIMPLE_PLAYLIST_VIEW : '\u30D7\u30EC\u30A4\u30EA\u30B9\u30C8\u3092\u30B7\u30F3\u30D7\u30EB\u8868\u793A\u306B\u3059\u308B',
+        PREF_REMOVE_ON_FINISH : '\u518D\u751F\u304C\u7D42\u308F\u3063\u305F\u3089\u30D7\u30EC\u30A4\u30EA\u30B9\u30C8\u304B\u3089\u524A\u9664\u3059\u308B',
+        PREF_USE_HISTORY : '\u5C65\u6B74\u3092\u4F7F\u7528\u3059\u308B',
+        PREF_SKIP_DELETED_VIDEO : '\u524A\u9664\u3055\u308C\u305F\u52D5\u753B\u3092\u30B9\u30AD\u30C3\u30D7\u3059\u308B',
+        PREF_USE_OFFTIMER : '\u30AA\u30D5\u30BF\u30A4\u30DE\u30FC\u3092\u4F7F\u7528\u3059\u308B',
+        PREF_MINUTE : '\u5206',
+        PREF_USE_LOOP_BREAK : '\u30EB\u30FC\u30D7\u3059\u308B\u52D5\u753B\u3092\u6307\u5B9A\u56DE\u6570\u3067\u6B62\u3081\u308B',
+        PREF_COUNT : '\u56DE',
+        PLEASE_LOGIN : '\u30ED\u30B0\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044',
+        OVER_ACCESS : '\u77ED\u6642\u9593\u3067\u306E\u9023\u7D9A\u30A2\u30AF\u30BB\u30B9',
+        SAVE_PLAYLIST_USAGE : '\u3053\u306E\u30EA\u30F3\u30AF\u306F\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u30EC\u30C3\u30C8\u3067\u3059\u3002\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u306B\u767B\u9332\u3059\u308B\u3053\u3068\u3067\u3053\u306E\u30D7\u30EC\u30A4\u30EA\u30B9\u30C8\u3092\u5FA9\u5143\u3067\u304D\u307E\u3059\u3002\n\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u30EC\u30C3\u30C8\u306F\u30CB\u30B3\u30CB\u30B3\u52D5\u753B(http://www.nicovideo.jp/)\u306E\u30C9\u30E1\u30A4\u30F3\u4E0A\u3067\u5B9F\u884C\u3057\u3066\u304F\u3060\u3055\u3044\u3002'
+    };
+    WNP.Lang = Lang;
     
     // ==== main ==== //
     var fn = {};
@@ -282,7 +303,10 @@
         '.wnp_history_header {',
         '    background-color: #EA7DB0;',
         '}',
-        'ul.wnp_playlist_items {',
+        '.wnp_preference_header {',
+        '    background-color: #5DCFA0;',
+        '}',
+        '.wnp_playlist_items {',
         '    box-sizing: border-box;', borderBox,
         '    background-color: #D0DAEF;',
         '    list-style: none;',
@@ -308,8 +332,9 @@
         '    line-height: 18px;',
         '    font-size: 12px;',
         '}',
-        '.wnp_menu_footer input[type="checkbox"] {',
+        '.wnp_menu_footer input {',
         '    margin: 0 .2em 0 .5em;',
+        '    vertical-align: middle;',
         '}',
         'ul.wnp_playlist_items li {',
         '    height: 50px;',
@@ -364,7 +389,7 @@
         '    width: 130px;',
         '}',
         'div.wnp_player button.default_button { }',
-        'div.wnp_player img.button { width: .8em; height: .8em; }',
+        'div.wnp_player img.button { vertical-align: middle; }',
         'div.wnp_player.playing #WNP_C_PLAY, div.wnp_player.loading #WNP_C_PLAY {',
         '    text-decoration: line-through;',
         '}',
@@ -456,6 +481,19 @@
         '    filter: alpha(opacity=1);',
         '}',
         @*/
+        'ul.wnp_pref_list {',
+        '    padding: 5px 0 0 15px; ',
+        '    list-style: none;',
+        '}',
+        'ul.wnp_pref_list li {',
+        '    padding: 3px; ',
+        '    margin-left: 20px; ',
+        '    line-height: 1.2; ',
+        '    text-indent: -20px; ',
+        '}',
+        'ul.wnp_pref_list li input[type="checkbox"] {',
+        '    margin-right: .5em; ',
+        '}',
         '</style>',
         '</head>',
         '<body>',
@@ -473,6 +511,7 @@
         '            <a class="control" id="WNP_C_PLAYLIST_URI" title="Save" href="about:blank"><img class="button" src="' + Consts.WNP_IMAGE_SAVE + '" alt=""></a>',
         '            <button class="control default_button" id="WNP_C_PLAYLIST" title="Show or Hide Playlist(N)">\u25BD</button>',
         '            <button class="control" id="WNP_C_HISTORY" title="Show or Hide History(H)">\u25BC</button>',
+        '            <button class="control" id="WNP_C_PREFERENCE" title="Show or Hide Preference(P)"><img class="button" src="' + Consts.WNP_IMAGE_PREF + '" alt=""></button>',
         '        </div>',
         '    </div>',
         '    <div class="wnp_view" id="WNP_VIEW"></div>',
@@ -508,6 +547,22 @@
         '                    <input id="WNP_C_USE_HISTOPRY" type="checkbox"><label for="WNP_C_USE_HISTOPRY">use history</label>',
         '                </p>',
         '            </div>',
+        '            <div class="wnp_menu_content" id="WNP_MENU_PREFERENCE">',
+        '                <p class="wnp_menu_header wnp_preference_header">preference</p>',
+        '                <div class="wnp_playlist_items" >',
+        '                <ul class="wnp_pref_list">',
+        '                    <li><input id="WNP_C_PREF_PLAYLIST_STYLE" type="checkbox"><label for="WNP_C_PREF_PLAYLIST_STYLE">' + Lang.PREF_SIMPLE_PLAYLIST_VIEW + '</label></li>',
+        '                    <li><input id="WNP_C_PREF_REMOVE_ON_FINISH" type="checkbox" checked="checked"><label for="WNP_C_PREF_REMOVE_ON_FINISH">' + Lang.PREF_REMOVE_ON_FINISH + '</label></li>',
+        '                    <li><input id="WNP_C_PREF_USE_HISTORY" type="checkbox" checked="checked"><label for="WNP_C_PREF_USE_HISTORY">' + Lang.PREF_USE_HISTORY + '</label></li>',
+        '                    <li><input id="WNP_C_PREF_SKIP_DELETED_VIDEO" type="checkbox" checked="checked"><label for="WNP_C_PREF_SKIP_DELETED_VIDEO">' + Lang.PREF_SKIP_DELETED_VIDEO + '</label></li>',
+        '                    <li><input id="WNP_C_PREF_USE_OFFTIMER" type="checkbox" checked="checked"><label for="WNP_C_PREF_USE_OFFTIMER">' + Lang.PREF_USE_OFFTIMER + '</label> <select id="WNP_C_PREF_OFFTIMER_MINUTE"><option value="10">10<option value="30">30<option  value="60" selected="selected">60<option value="120">120</select>' + Lang.PREF_MINUTE + '</li>',
+        '                    <li><input id="WNP_C_PREF_USE_LOOP_BREAK" type="checkbox" checked="checked"><label for="WNP_C_PREF_USE_LOOP_BREAK">' + Lang.PREF_USE_LOOP_BREAK + '</label> <select id="WNP_C_PREF_LOOP_BREAK_COUNT"><option value="0">0<option value="1">1<option value="2">2<option value="3" selected="selected">3<option value="10">10</select>' + Lang.PREF_COUNT + '</li>',
+        '                </ul>',
+        '                </div>',
+        '                <p class="wnp_menu_footer">',
+        '                    <input id="WNP_C_SET_DEFAULT" type="button" value="default">',
+        '                </p>',
+        '            </div>',
         '        </div>',
         '    </div>',
         '</div>',
@@ -516,6 +571,7 @@
         '<script type="text/javascript">',
         '    var Consts = (' + toJSON(Consts) + ');',
         '    var Colors = (' + toJSON(Colors) + ');',
+        '    var Lang = (' + toJSON(Lang) + ');',
         '    BUILD_FUNC();',
         '    BUILD_WNP();',
         '</script>',
@@ -1468,6 +1524,108 @@ function BUILD_FUNC(T) {
         }
     };
     T.ListedKeyMap = ListedKeyMap;
+    /**
+     * class SwfStorage.
+     */
+    function SwfStorage(swfUrl) {
+        this.url = swfUrl;
+        this.isLoaded = false;
+        this.timer = new TimerManager();
+        this.load();
+    }
+    SwfStorage.prototype = {
+        load : function() {
+            var swf = document.createElement('embed');
+            swf.setAttribute('type', 'application/x-shockwave-flash');
+            swf.setAttribute('allowScriptAccess', 'always');
+            swf.setAttribute('wmode', 'transparent');
+            swf.setAttribute('src', this.url);
+            swf.setAttribute('width', '1px');
+            swf.setAttribute('height', '1px');
+            swf.style.cssText = 'position: absolute; z-index: -1; top: 0; left: 0; width: 1px; height: 1px;';
+            (document.body || document.documentElement).appendChild(swf);
+            this.swf = swf;
+            this.observeLoad();
+        },
+        observeLoad : function() {
+            var self = this;
+            var retry = 100;
+            this.timer.setInterval('observe', function() {
+                try {
+                    self.swf.setData('test', 'test');
+                    if (self.swf.getData('test') == 'test') {
+                        self.isLoaded = true;
+                        self.timer.clear('observe');
+                        if (self.onload) try { self.onload(); } catch(e) {}
+                        return;
+                    }
+                }
+                catch (e) { postError(e) }
+                if (--retry == 0) self.timer.clear('observe');
+            }, 200);
+        },
+        getData : function(key, name) {
+            return this.swf.getData(key, name);
+        },
+        setData : function(key, data, name) {
+            return this.swf.setData(key, data, name);
+        },
+        clear : function(name) {
+            this.swf.clear(name);
+        }
+    };
+    /**
+     * class LocalStorage.
+     */
+    function LocalStorage(category) {
+        this.isLoaded = (typeof window.localStorage != 'undefined');
+        this.category = (category != null ? (category + '/') : '');
+        var self = this;
+        setTimeout(function() {
+            if (self.onload) try { self.onload(); } catch(e) {}
+        }, 10);
+    }
+    LocalStorage.prototype = {
+        getData : function(key, name) {
+            return localStorage.getItem(this.category + (name != null ? (name + '.' + key) : key));
+        },
+        setData : function(key, data, name) {
+            return localStorage.setItem(this.category + (name != null ? (name + '.' + key) : key), data);
+        },
+        clear : function(name) {
+            var prefix = this.category + (name != null ? (name + '.') : '');
+            var keys = [];
+            if (prefix) {
+                for (var i = 0, len = localStorage.length; i < len; i++) {
+                    var key = localStorage.key(i);
+                    if (key.indexOf(prefix) == 0) keys.push(key);
+                }
+            }
+            else {
+                for (var i = 0, len = localStorage.length; i < len; i++) {
+                    var key = localStorage.key(i);
+                    if (key.indexOf('/') < 0 && key.indexOf('.') < 0) keys.push(key);
+                }
+            }
+            for (var i = 0; i < keys.length; i++) {
+                localStorage.removeItem(keys[i]);
+            }
+        }
+    };
+    var createStorage = (function() {
+        var storage = null;
+        if (typeof window.localStorage != 'undefined') {
+            return function() {
+                return storage || (storage = new LocalStorage('wnp'));
+            }
+        }
+        else {
+            return function() {
+                return storage || (storage = new SwfStorage(Consts.WNP_STORAGE_SWF));
+            }
+        }
+    })();
+    T.createStorage = createStorage;
 }
 WNP.BUILD_FUNC = BUILD_FUNC;
 function BUILD_WNP(T) {
@@ -1637,7 +1795,7 @@ function BUILD_WNP(T) {
             }
         }
         catch(e) { postError(e) }
-    },
+    };
     WNPCore.prototype.resume = function() {
         this.isPausing = false;
         var flvplayer = this.nico().flvplayer;
@@ -1845,7 +2003,7 @@ function BUILD_WNP(T) {
         this.isControlShowing = !!show;
         var controlHeight = Consts.ORG_PLAYER_CONTROL_HEIGHT;
         this.nico().window.scrollBy(0, controlHeight * (show ? 1 : -1));
-    },
+    };
     WNPCore.prototype.setCommentOff = function(off) {
         this.isCommentOff = !!off;
         if (!this.isPlaying) return;
@@ -2045,7 +2203,7 @@ function BUILD_WNP(T) {
                 }
                 // logout check.
                 if (nico.window.User && !nico.window.User.id) {
-                    var event = { type: 'fatal', message : '\u30ED\u30B0\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044' };
+                    var event = { type: 'fatal', message : Lang.PLEASE_LOGIN };
                     self.dispatchEvent(event);
                     if (typeof self.onfatal == 'function') try { self.onfatal(event); } catch(e) { postError(e) }
                     return;
@@ -2054,7 +2212,7 @@ function BUILD_WNP(T) {
                 var h1 = nico.document.getElementsByTagName('h1')[0];
                 if (h1) {
                     var h1Text = h1.textContent || h1.innerText;
-                    if (h1Text.indexOf('\u77ED\u6642\u9593\u3067\u306E\u9023\u7D9A\u30A2\u30AF\u30BB\u30B9') >= 0 && nico.document.title.indexOf(h1Text) < 0) {
+                    if (h1Text.indexOf(Lang.OVER_ACCESS) >= 0 && nico.document.title.indexOf(h1Text) < 0) {
                         var event = { type: 'fatal', message : h1Text };
                         self.dispatchEvent(event);
                         if (typeof self.onfatal == 'function') try { self.onfatal(event); } catch(e) { postError(e) }
@@ -2195,7 +2353,7 @@ function BUILD_WNP(T) {
                 }
             }
         }, this.observeInterval || 500);
-    },
+    };
     WNPCore.prototype.nicoFrameLoaded = function() {
         this.loadingEnd();
         try {
@@ -2227,28 +2385,11 @@ function BUILD_WNP(T) {
     function WNP(Prefs) {
         this.initialize.apply(this, arguments);
     };
-    WNP.prototype.initialize = function(Prefs) {
-        var pref = Prefs || {};
+    WNP.prototype.initialize = function(prefs) {
         this.wnpWindow = window;
         this.build();
-        this.wnpElement = this.wnpWindow.document.getElementById('WNP_PLAYER');
-        var playlistElement = this.wnpWindow.document.getElementById('WNP_PLAYLIST_ITEMS');
-        this.playlistIterator = new ListElementIterator(playlistElement);
-        this.selectionIterator = new ListElementIterator(playlistElement);
-        this.menuWidthRatio = Number(pref.MENU_WIDTH_RATIO) || 50;
-        this.setLoop(!!pref.LOOP_ON_STARTUP);
-        this.setCommentOff(!!pref.COMMENT_OFF_ON_STARTUP);
-        this.setMute(false);
-        this.setAlwaysOnTop(!!pref.ALWAYS_ON_TOP_ON_STARTUP);
-        this.setPlaylistStyleSimple(!!pref.PLAYLIST_STYLE_SIMPLE_ON_STARTUP);
-        this.setRemoveOnFinish(('REMOVE_ON_FINISH_ON_STARTUP' in pref) ? !!pref.REMOVE_ON_FINISH_ON_STARTUP : true);
-        this.setUseHistory(('USE_HISTORY_ON_STARTUP' in pref) ? !!pref.USE_HISTORY_ON_STARTUP : true);
-        this.wnpCore.observeInterval = Number(pref.OBSERVE_INTERVAL) || 500;
-        this.pageTimeout = Number(pref.PAGE_TIMEOUT) || 80;
-        this.videoTimeout = Number(pref.VIDEO_TIMEOUT) || 60;
-        this.offTimer = Number(pref.OFFTIMER) || 120;
-        this.wnpCore.errorWhenDeleted = !!pref.SKIP_DELETED_MOVIE;
-        this.loopBreakCount = Number(pref.LOOP_BREAK_COUNT) || 0;
+        this.applyPreferences();
+        if (prefs) this.applyPreferences(prefs);
         this.playlist = { items: [], video: {}, title: {}, image: {} };
         this.isForceFilled = true; // fill on startup.
         this.lastOperationTime = new Date();
@@ -2258,6 +2399,7 @@ function BUILD_WNP(T) {
     };
     WNP.prototype.build = function() {
         var d = this.wnpWindow.document;
+        this.wnpElement = d.getElementById('WNP_PLAYER');
         this.wnpCore = new WNPCore(d);
         d.getElementById('WNP_VIEW').appendChild(this.wnpCore.element);
         var self = this;
@@ -2279,27 +2421,29 @@ function BUILD_WNP(T) {
         $e(d.getElementById('WNP_C_LOOP')).addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            self.setLoop(!self.isLoop);
+            self.applyPreferences({ loop: !self.prefs.loop });
         }, false);
         $e(d.getElementById('WNP_C_NICO_REPEAT')).addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            self.setRepeat(!self.wnpCore.isRepeat);
+            self.applyPreferences({ repeat: !self.wnpCore.isRepeat });
         }, false);
         $e(d.getElementById('WNP_C_NICO_COMM')).addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            self.setCommentOff(!self.isCommentOff);
+            self.applyPreferences({ comment_off: !self.wnpCore.isCommentOff });
+            self.showControlPanel();
         }, false);
         $e(d.getElementById('WNP_C_NICO_MUTE')).addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            self.setMute(!self.wnpCore.isMute);
+            self.applyPreferences({ mute: !self.wnpCore.isMute });
+            self.showControlPanel();
         }, false);
         $e(d.getElementById('WNP_C_PLAYLIST_URI')).addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            self.wnpWindow.alert('\u3053\u306E\u30EA\u30F3\u30AF\u306F\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u30EC\u30C3\u30C8\u3067\u3059\u3002\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u306B\u767B\u9332\u3059\u308B\u3053\u3068\u3067\u3053\u306E\u30D7\u30EC\u30A4\u30EA\u30B9\u30C8\u3092\u5FA9\u5143\u3067\u304D\u307E\u3059\u3002\n\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u30EC\u30C3\u30C8\u306F\u30CB\u30B3\u30CB\u30B3\u52D5\u753B(http://www.nicovideo.jp/)\u306E\u30C9\u30E1\u30A4\u30F3\u4E0A\u3067\u5B9F\u884C\u3057\u3066\u304F\u3060\u3055\u3044\u3002');
+            self.wnpWindow.alert(Lang.SAVE_PLAYLIST_USAGE);
         }, false);
         $e(d.getElementById('WNP_C_PLAYLIST')).addEventListener('click', function(e) {
             e.preventDefault();
@@ -2310,6 +2454,11 @@ function BUILD_WNP(T) {
             e.preventDefault();
             e.stopPropagation();
             self.historyToggle();
+        }, false);
+        $e(d.getElementById('WNP_C_PREFERENCE')).addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            self.preferenceToggle();
         }, false);
         $e(d.getElementById('WNP_HEADER')).addEventListener('click', function(e) {
             self.menuToggle();
@@ -2322,19 +2471,19 @@ function BUILD_WNP(T) {
         $e(d.getElementById('WNP_C_ALWAYS_ON_TOP')).addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            self.setAlwaysOnTop(!self.isAlwaysOnTop);
+            self.applyPreferences({ always_on_top: !self.always_on_top });
         }, false);
         $e(d.getElementById('WNP_C_PLAYLIST_STYLE')).addEventListener('click', function(e) {
             e.stopPropagation();
-            self.setPlaylistStyleSimple(e.currentTarget.checked);
+            self.applyPreferences({ playlist_style_simple: e.currentTarget.checked }, true);
         }, false);
         $e(d.getElementById('WNP_C_REMOVE_ON_FINISH')).addEventListener('click', function(e) {
             e.stopPropagation();
-            self.setRemoveOnFinish(e.currentTarget.checked);
+            self.applyPreferences({ remove_on_finish: e.currentTarget.checked }, true);
         }, false);
         $e(d.getElementById('WNP_C_USE_HISTOPRY')).addEventListener('click', function(e) {
             e.stopPropagation();
-            self.setUseHistory(e.currentTarget.checked);
+            self.applyPreferences({ use_history: e.currentTarget.checked }, true);
         }, false);
         $e(d.getElementById('WNP_FOOTER')).addEventListener('click', function(e) {
             self.wnpCore.setControlShowing(!self.wnpCore.isControlShowing);
@@ -2388,11 +2537,12 @@ function BUILD_WNP(T) {
             var ratio = Math.ceil((1 - x / w) * 100);
             if (ratio < 10) ratio = 10;
             if (ratio > 100) ratio = 100;
-            self.menuWidthRatio = ratio;
+            self.prefs.menu_width_ratio = ratio;
             self.menuShow();
         }, false);
         $e(d).addEventListener((browser.ie || browser.webkit) ? 'keydown' : 'keypress', function(e) {
             self.lastOperationTime = new Date();
+            if (/^(?:input|textarea|select)$/i.test(e.target.nodeName)) return;
             if (e.keyCode == 27) { // Esc
                 self.restoreControlPanel();
                 self.scheduleCancel();
@@ -2482,20 +2632,27 @@ function BUILD_WNP(T) {
                 self.historyToggle();
                 e.preventDefault();
             }
+            if (String.fromCharCode(e.keyCode||e.which).toLowerCase() == 'p') {
+                self.preferenceToggle();
+                e.preventDefault();
+            }
             if (String.fromCharCode(e.keyCode||e.which).toLowerCase() == 'c') {
-                self.setCommentOff(!self.isCommentOff);
+                self.applyPreferences({ comment_off: !self.wnpCore.isCommentOff });
+                self.showControlPanel();
                 e.preventDefault();
             }
             if (String.fromCharCode(e.keyCode||e.which).toLowerCase() == 'l') {
-                self.setLoop(!self.isLoop);
+                self.applyPreferences({ loop: !self.prefs.loop });
                 e.preventDefault();
             }
             if (String.fromCharCode(e.keyCode||e.which).toLowerCase() == 'r') {
-                self.setRepeat(!self.wnpCore.isRepeat);
+                self.applyPreferences({ repeat: !self.wnpCore.isRepeat });
+                self.showControlPanel();
                 e.preventDefault();
             }
             if (String.fromCharCode(e.keyCode||e.which).toLowerCase() == 'm') {
-                self.setMute(!self.wnpCore.isMute);
+                self.applyPreferences({ mute: !self.wnpCore.isMute });
+                self.showControlPanel();
                 e.preventDefault();
             }
             if (String.fromCharCode(e.keyCode||e.which).toLowerCase() == 'v') {
@@ -2517,8 +2674,8 @@ function BUILD_WNP(T) {
             self.lastOperationTime = new Date();
         }, false);
         $e(this.wnpWindow).addEventListener('blur', function() {
-            if (self.isAlwaysOnTop) {
-                self.wnpWindow.setTimeout(function() {
+            if (self.prefs.always_on_top) {
+                self.timer.setTimeout('always_on_top', function() {
                     self.wnpWindow.focus();
                 }, 500);
             }
@@ -2545,6 +2702,51 @@ function BUILD_WNP(T) {
         this.listUtil = listUtil;
         this.timer = new TimerManager(this.wnpWindow);
         this.preloads = new ListedKeyMap();
+
+        this.playlistIterator = new ListElementIterator(list);
+        this.selectionIterator = new ListElementIterator(list);
+
+        $e(d.getElementById('WNP_C_PREF_PLAYLIST_STYLE')).addEventListener('click', function(e) {
+            e.stopPropagation();
+            self.applyPreferences({ playlist_style_simple: e.currentTarget.checked }, true);
+        }, false);
+        $e(d.getElementById('WNP_C_PREF_REMOVE_ON_FINISH')).addEventListener('click', function(e) {
+            e.stopPropagation();
+            self.applyPreferences({ remove_on_finish: e.currentTarget.checked }, true);
+        }, false);
+        $e(d.getElementById('WNP_C_PREF_USE_HISTORY')).addEventListener('click', function(e) {
+            e.stopPropagation();
+            self.applyPreferences({ use_history: e.currentTarget.checked }, true);
+        }, false);
+        $e(d.getElementById('WNP_C_PREF_SKIP_DELETED_VIDEO')).addEventListener('click', function(e) {
+            e.stopPropagation();
+            self.applyPreferences({ skip_deleted_video: e.currentTarget.checked }, true);
+        }, false);
+        $e(d.getElementById('WNP_C_PREF_USE_OFFTIMER')).addEventListener('click', function(e) {
+            e.stopPropagation();
+            self.applyPreferences({ use_offtimer: e.currentTarget.checked }, true);
+        }, false);
+        $e(d.getElementById('WNP_C_PREF_OFFTIMER_MINUTE')).addEventListener('change', function(e) {
+            e.stopPropagation();
+            self.applyPreferences({ offtimer_minute: e.currentTarget.value }, true);
+        }, false);
+        $e(d.getElementById('WNP_C_PREF_USE_LOOP_BREAK')).addEventListener('click', function(e) {
+            e.stopPropagation();
+            self.applyPreferences({ use_loop_break: e.currentTarget.checked }, true);
+        }, false);
+        $e(d.getElementById('WNP_C_PREF_LOOP_BREAK_COUNT')).addEventListener('change', function(e) {
+            e.stopPropagation();
+            self.applyPreferences({ loop_break_count: e.currentTarget.value }, true);
+        }, false);
+        $e(d.getElementById('WNP_C_SET_DEFAULT')).addEventListener('click', function(e) {
+            e.stopPropagation();
+            self.setDefaultPreferences();
+        }, false);
+        this.prefs = this.getDefaultPreferences();
+        this.storage = createStorage();
+        this.storage.onload = function () {
+            self.loadPreferences();
+        };
     };
     WNP.prototype.seek = function(time) {
         this.wnpCore.seek(time);
@@ -2596,75 +2798,6 @@ function BUILD_WNP(T) {
         var controlPanel = this.wnpWindow.document.getElementById('WNP_CONTROL_PANEL');
         controlPanel.style.visibility = '';
     };
-    WNP.prototype.setLoop = function(loop) {
-        this.isLoop = loop;
-        var button = this.wnpWindow.document.getElementById('WNP_C_LOOP');
-        if (this.isLoop) button.style.color = Colors.control_loop;
-        else             button.style.color = '';
-    };
-    WNP.prototype.setRepeat = function(repeat) {
-        this.wnpCore.setRepeat(repeat);
-        var button = this.wnpWindow.document.getElementById('WNP_C_NICO_REPEAT');
-        if (repeat) button.style.color = Colors.control_repeat;
-        else        button.style.color = '';
-        this.showControlPanel();
-    };
-    WNP.prototype.setCommentOff = function(off) {
-        this.isCommentOff = !!off;
-        this.wnpCore.setCommentOff(this.isCommentOff);
-        var button = this.wnpWindow.document.getElementById('WNP_C_NICO_COMM');
-        if (this.isCommentOff) {
-            button.style.color = Colors.control_comment_off;
-            button.style.textDecoration = 'line-through';
-        }
-        else {
-            button.style.color = '';
-            button.style.textDecoration = '';
-        }
-        this.showControlPanel();
-    };
-    WNP.prototype.setMute = function(mute) {
-        this.wnpCore.setMute(mute);
-        var button = this.wnpWindow.document.getElementById('WNP_C_NICO_MUTE');
-        if (mute) {
-            button.style.color = Colors.control_mute;
-            button.style.textDecoration = 'line-through';
-        }
-        else {
-            button.style.color = '';
-            button.style.textDecoration = '';
-        }
-        this.showControlPanel();
-    };
-    WNP.prototype.setAlwaysOnTop = function(alwaysOnTop) {
-        this.isAlwaysOnTop = alwaysOnTop;
-        var button = this.wnpWindow.document.getElementById('WNP_C_ALWAYS_ON_TOP');
-        if (this.isAlwaysOnTop) button.style.color = Colors.control_always_on_top;
-        else                    button.style.color = '';
-    };
-    WNP.prototype.setPlaylistStyleSimple = function(simple) {
-        if (!this._simplePlaylistStyle) {
-            var simple_style_str = [
-                'ul.wnp_playlist_items li div.video_info img.thumbnail { display: none }',
-                'ul.wnp_playlist_items li div.video_info { width: 10px }',
-                'ul.wnp_playlist_items li { height: 25px }',
-                'ul.wnp_playlist_items li div.video_desc * { display: none }',
-                'ul.wnp_playlist_items li div.video_desc a { display: inline }',
-                /*@cc_on 'ul.wnp_playlist_items li img.wnp_iecover { height: 28px; }', @*/
-            ].join('\n');
-            var style = addStyle(simple_style_str, this.wnpWindow.document);
-            this._simplePlaylistStyle = style;
-        }
-        this._simplePlaylistStyle.disabled = !simple;
-        if (this._simplePlaylistStyle.sheet) this._simplePlaylistStyle.sheet.disabled = !simple; // webkit.
-        this.wnpWindow.document.getElementById('WNP_C_PLAYLIST_STYLE').checked = simple;
-    };
-    WNP.prototype.setRemoveOnFinish = function(rof) {
-        this.wnpWindow.document.getElementById('WNP_C_REMOVE_ON_FINISH').checked = rof;
-    };
-    WNP.prototype.setUseHistory = function(use) {
-        this.wnpWindow.document.getElementById('WNP_C_USE_HISTOPRY').checked = use;
-    };
     WNP.prototype.menuToggle = function() {
         if (this.isMenuShowing) {
             this.menuHide();
@@ -2678,6 +2811,9 @@ function BUILD_WNP(T) {
     };
     WNP.prototype.historyToggle = function() {
         this.toggleMenuItem(1);
+    };
+    WNP.prototype.preferenceToggle = function() {
+        this.toggleMenuItem(2);
     };
     WNP.prototype.toggleMenuItem = function(index) {
         if (this.currentMenuIndex === index) {
@@ -2732,8 +2868,8 @@ function BUILD_WNP(T) {
         var menu = this.wnpWindow.document.getElementById('WNP_MENU');
         var view = this.wnpWindow.document.getElementById('WNP_VIEW');
         menu.style.borderRightWidth = '5px'; // for Opera9.5
-        menu.style.width = this.menuWidthRatio + '%';
-        view.style.width = (100-this.menuWidthRatio) + '%';
+        menu.style.width = this.prefs.menu_width_ratio + '%';
+        view.style.width = (100-this.prefs.menu_width_ratio) + '%';
         this.isMenuShowing = true;
     };
     WNP.prototype.menuHide = function() {
@@ -2827,7 +2963,7 @@ function BUILD_WNP(T) {
             '  <button>\u00D7</button>',
             '</div>',
         ].join('');
-        var self = this, playThis, removeThis;
+        var self = this;
         var playThis = function(e) {
             self.play(self.playlistIterator.indexOf(li));
             e.preventDefault();
@@ -2838,7 +2974,13 @@ function BUILD_WNP(T) {
         };
         if (forHistory) {
             playThis = function(e) {
-                WNP.play(createPlayInfo(li));
+                var pl = createPlayInfo(li);
+                if (self.wnpCore.isPlaying) {
+                    WNP.insert(pl);
+                }
+                else {
+                    WNP.play(pl);
+                }
                 li.parentNode.removeChild(li);
                 e.preventDefault();
             };
@@ -3016,6 +3158,8 @@ function BUILD_WNP(T) {
             this.wnpCore.setMute(oldCore.isMute);
             //this.wnpCore.setRepeat(oldCore.isRepeat);
             //this.wnpCore.volumeTo(oldCore.volume());
+            this.wnpCore.observeInterval = this.prefs.observe_interval;
+            this.wnpCore.errorWhenDeleted = this.prefs.skip_deleted_video;
             oldCore.pause();
             oldCore.hide();
             this.wnpWindow.setTimeout(function() { // for Opera 10 freeze.
@@ -3047,12 +3191,12 @@ function BUILD_WNP(T) {
         this.timer.setTimeout('playTimeout', function() {
             self.showStatus("load timeout. go to next.", 5);
             self.next();
-        }, this.pageTimeout * 1000 + 500);
+        }, this.prefs.page_timeout * 1000 + 500);
         this.wnpCore.onload = function() {
             self.timer.setTimeout('playTimeout', function() {
                 self.showStatus("play timeout. go to next.", 5);
                 self.next();
-            }, self.videoTimeout * 1000);
+            }, self.prefs.video_timeout * 1000);
             // show actual title.
             if (!title || title == videoinfo.id) {
                 title = self.wnpCore.videoinfo.title;
@@ -3103,19 +3247,20 @@ function BUILD_WNP(T) {
             self.showStatus((e.message || 'fatal error.'), 5, true);
         };
         this.wnpCore.onfinish = function() {
-            if (self.wnpWindow.document.getElementById('WNP_C_USE_HISTOPRY').checked) {
+            if (self.prefs.use_history) {
                 var playinfo = createPlayInfo(currentItem);
                 self.addHistory(playinfo);
             }
-            if (self.wnpWindow.document.getElementById('WNP_C_REMOVE_ON_FINISH').checked) {
+            if (self.prefs.remove_on_finish) {
                 self.remove(currentItem);
             }
-            if ((new Date() - (self.lastOperationTime || 0)) > self.offTimer * 60 * 1000) {
-                self.stop();
+            if (self.prefs.use_offtimer) {
+                if ((new Date() - (self.lastOperationTime || 0)) > self.prefs.offtimer_minute * 60 * 1000) {
+                    self.stop();
+                    return;
+                }
             }
-            else {
-                self.next();
-            }
+            self.next();
         };
         this.wnpCore.onback = (function() {
             var backCount = 0;
@@ -3124,14 +3269,16 @@ function BUILD_WNP(T) {
                     backCount = 0;
                     return;
                 }
-                if (!new Date() - (self.lastOperationTime || 0) > 5000) {
+                if (new Date() - (self.lastOperationTime || 0) > 5000) {
                     backCount++;
                 }
                 else {
                     backCount = 0;
                 }
-                if (self.loopBreakCount > 0 && backCount >= self.loopBreakCount) {
-                    self.wnpCore.onfinish();
+                if (self.prefs.use_loop_break) {
+                    if (backCount > self.prefs.loop_break_count) {
+                        self.wnpCore.onfinish();
+                    }
                 }
             }
         })();
@@ -3161,8 +3308,8 @@ function BUILD_WNP(T) {
         this.play();
     };
     WNP.prototype.next = function() {
-        if (this.isLoop) this.playlistIterator.next().isNullThenFirst();
-        else             this.playlistIterator.next();
+        if (this.prefs.loop) this.playlistIterator.next().isNullThenFirst();
+        else                 this.playlistIterator.next();
         this.play();
     };
     WNP.prototype.schedulePrev = function() {
@@ -3209,7 +3356,7 @@ function BUILD_WNP(T) {
     };
     WNP.prototype.preloadNext = function() {
         var preloadIterator = new ListElementIterator(this.wnpWindow.document.getElementById('WNP_PLAYLIST_ITEMS')).current(this.playlistIterator.item).next();
-        if (this.isLoop) preloadIterator.isNullThenLast();
+        if (this.prefs.loop) preloadIterator.isNullThenLast();
         var nextItem = preloadIterator.item;
         this.timer.clear('preload');
         if (!nextItem || this.wnpCore.loaded() < 1) {
@@ -3230,8 +3377,8 @@ function BUILD_WNP(T) {
         }
         var wnpCore = new WNPCore(this.wnpWindow.document);
         preloads.add(videoinfo.id, wnpCore);
-        wnpCore.observeInterval = this.wnpCore.observeInterval;
-        wnpCore.errorWhenDeleted = this.wnpCore.errorWhenDeleted;
+        wnpCore.observeInterval = this.prefs.observe_interval;
+        wnpCore.errorWhenDeleted = this.prefs.skip_deleted_video;
         wnpCore.hide();
         wnpCore.onerror = wnpCore.onfatal = function() {
             wnpCore.detach();
@@ -3329,6 +3476,256 @@ function BUILD_WNP(T) {
         this.alternativeView.src = 'about:blank';
         this.alternativeView.src = svg_url;
     };
+    WNP.prototype.getDefaultPreferences = function() {
+        return {
+            observe_interval      : 500,
+            page_timeout          : 80,
+            video_timeout         : 60,
+            menu_width_ratio      : 50,
+            loop                  : false,
+            comment_off           : false,
+            always_on_top         : false,
+            playlist_style_simple : false,
+            remove_on_finish      : true,
+            use_history           : true,
+            skip_deleted_video    : true,
+            use_offtimer          : true,
+            offtimer_minute       : 60,
+            use_loop_break        : true,
+            loop_break_count      : 3
+        };
+    };
+    WNP.prototype.loadPreferences = function() {
+        if (!this.storage.isLoaded) return;
+        var prefKeys = [
+            'playlist_style_simple',
+            'remove_on_finish',
+            'use_history',
+            'skip_deleted_video',
+            'use_offtimer',
+            'offtimer_minute',
+            'use_loop_break',
+            'loop_break_count'
+        ];
+        var values = {};
+        for (var i = 0; i < prefKeys.length; i++) {
+            var key = prefKeys[i];
+            var value = this.storage.getData(key);
+            if (value != null) {
+                values[key] = value;
+            }
+        }
+        if (this._tmpPreferences) {
+            var t = this._tmpPreferences;
+            for (var i = 0; i < prefKeys.length; i++) {
+                var key = prefKeys[i];
+                if (key in t && t[key] != null) {
+                    this.storage.setData(key, t[key]);
+                    values[key] = t[key];
+                }
+            }
+            delete this._tmpPreferences;
+        }
+        this.applyPreferences(values);
+    };
+    WNP.prototype.storePreference = function(key, value) {
+        if (!this.storage.isLoaded) {
+            if (!this._tmpPreferences) this._tmpPreferences = {};
+            this._tmpPreferences.key = value;
+        }
+        else {
+            this.storage.setData(key, value.toString());
+        }
+    };
+    WNP.prototype.setDefaultPreferences = function() {
+        this.storage.clear();
+        this.prefs = this.getDefaultPreferences();
+        this.applyPreferences();
+    };
+    WNP.prototype.applyPreferences = function(prefs, save) {
+        var prefs = prefs || this.prefs;
+        var key;
+        key = 'observe_interval';
+        if (key in prefs && prefs[key] != null) {
+            this.prefs[key] = Number(prefs[key]) || 500;
+            this.wnpCore.observeInterval = this.prefs[key];
+        }
+        key = 'page_timeout';
+        if (key in prefs && prefs[key] != null) {
+            this.prefs[key] = Number(prefs[key]) || 80;
+        }
+        key = 'video_timeout';
+        if (key in prefs && prefs[key] != null) {
+            this.prefs[key] = Number(prefs[key]) || 60;
+        }
+        key = 'menu_width_ratio';
+        if (key in prefs && prefs[key] != null) {
+            this.prefs[key] = Number(prefs[key]) || 50;
+        }
+        key = 'loop';
+        if (key in prefs && prefs[key] != null) {
+            this.prefs[key] = (prefs[key] == true);
+            this.setPreferenceUI(key, this.prefs[key]);
+        }
+        key = 'comment_off';
+        if (key in prefs && prefs[key] != null) {
+            this.prefs[key] = (prefs[key] == true);
+            this.setPreferenceUI(key, this.prefs[key]);
+            this.wnpCore.setCommentOff(this.prefs[key]);
+        }
+        key = 'mute';
+        if (key in prefs && prefs[key] != null) {
+            this.prefs[key] = (prefs[key] == true);
+            this.setPreferenceUI(key, this.prefs[key]);
+            this.wnpCore.setMute(this.prefs[key]);
+        }
+        key = 'repeat';
+        if (key in prefs && prefs[key] != null) {
+            this.prefs[key] = (prefs[key] == true);
+            this.setPreferenceUI(key, this.prefs[key]);
+            this.wnpCore.setRepeat(this.prefs[key]);
+        }
+        key = 'always_on_top';
+        if (key in prefs && prefs[key] != null) {
+            this.prefs[key] = (prefs[key] == true);
+            this.setPreferenceUI(key, this.prefs[key]);
+        }
+        key = 'playlist_style_simple';
+        if (key in prefs && prefs[key] != null) {
+            this.prefs[key] = (prefs[key] == true);
+            if (!this._simplePlaylistStyle) {
+                var simple_style_str = [
+                    'ul.wnp_playlist_items li div.video_info img.thumbnail { display: none }',
+                    'ul.wnp_playlist_items li div.video_info { width: 10px }',
+                    'ul.wnp_playlist_items li { height: 25px }',
+                    'ul.wnp_playlist_items li div.video_desc * { display: none }',
+                    'ul.wnp_playlist_items li div.video_desc a { display: inline }',
+                    /*@cc_on 'ul.wnp_playlist_items li img.wnp_iecover { height: 28px; }', @*/
+                ].join('\n');
+                var style = addStyle(simple_style_str, this.wnpWindow.document);
+                this._simplePlaylistStyle = style;
+            }
+            this._simplePlaylistStyle.disabled = !this.prefs[key];
+            if (this._simplePlaylistStyle.sheet) this._simplePlaylistStyle.sheet.disabled = !this.prefs[key]; // webkit.
+            this.setPreferenceUI(key, this.prefs[key]);
+            if (save) this.storePreference(key, this.prefs[key] ? '1' : '0');
+        }
+        key = 'remove_on_finish';
+        if (key in prefs && prefs[key] != null) {
+            this.prefs[key] = (prefs[key] == true);
+            this.setPreferenceUI(key, this.prefs[key]);
+            if (save) this.storePreference(key, this.prefs[key] ? '1' : '0');
+        }
+        key = 'use_history';
+        if (key in prefs && prefs[key] != null) {
+            this.prefs[key] = (prefs[key] == true);
+            this.setPreferenceUI(key, this.prefs[key]);
+            if (save) this.storePreference(key, this.prefs[key] ? '1' : '0');
+        }
+        key = 'skip_deleted_video';
+        if (key in prefs && prefs[key] != null) {
+            this.prefs[key] = (prefs[key] == true);
+            this.setPreferenceUI(key, this.prefs[key]);
+            this.wnpCore.errorWhenDeleted = this.prefs[key];
+            if (save) this.storePreference(key, this.prefs[key] ? '1' : '0');
+        }
+        key = 'use_offtimer';
+        if (key in prefs && prefs[key] != null) {
+            this.prefs[key] = (prefs[key] == true);
+            this.setPreferenceUI(key, this.prefs[key]);
+            if (save) this.storePreference(key, this.prefs[key] ? '1' : '0');
+        }
+        key = 'offtimer_minute';
+        if (key in prefs && prefs[key] != null) {
+            this.prefs[key] = Number(prefs[key]) || 60;
+            this.setPreferenceUI(key, this.prefs[key]);
+            if (save) this.storePreference(key, this.prefs[key].toString());
+        }
+        key = 'use_loop_break';
+        if (key in prefs && prefs[key] != null) {
+            this.prefs[key] = (prefs[key] == true);
+            this.setPreferenceUI(key, this.prefs[key]);
+            if (save) this.storePreference(key, this.prefs[key] ? '1' : '0');
+        }
+        key = 'loop_break_count';
+        if (key in prefs && prefs[key] != null) {
+            this.prefs[key] = (!isNaN(prefs[key])) ? Number(prefs[key]) : 3;
+            this.setPreferenceUI(key, this.prefs[key]);
+            if (save) this.storePreference(key, this.prefs[key].toString());
+        }
+    };
+    WNP.prototype.setPreferenceUI = function(key, value) {
+        if (value == null) return;
+        var document = this.wnpWindow.document;
+        switch(key) {
+            case 'loop' :
+                var button = document.getElementById('WNP_C_LOOP');
+                if (value == true) button.style.color = Colors.control_loop;
+                else               button.style.color = '';
+                break;
+            case 'comment_off' :
+                var button = document.getElementById('WNP_C_NICO_COMM');
+                if (value == true) {
+                    button.style.color = Colors.control_comment_off;
+                    button.style.textDecoration = 'line-through';
+                }
+                else {
+                    button.style.color = '';
+                    button.style.textDecoration = '';
+                }
+                break;
+            case 'mute' :
+                var button = document.getElementById('WNP_C_NICO_MUTE');
+                if (value == true) {
+                    button.style.color = Colors.control_mute;
+                    button.style.textDecoration = 'line-through';
+                }
+                else {
+                    button.style.color = '';
+                    button.style.textDecoration = '';
+                }
+                break;
+            case 'repeat' :
+                var button = document.getElementById('WNP_C_NICO_REPEAT');
+                if (value == true) button.style.color = Colors.control_repeat;
+                else               button.style.color = '';
+                break;
+            case 'always_on_top' :
+                var button = document.getElementById('WNP_C_ALWAYS_ON_TOP');
+                if (value == true) button.style.color = Colors.control_always_on_top;
+                else               button.style.color = '';
+                break;
+            case 'playlist_style_simple' :
+                document.getElementById('WNP_C_PREF_PLAYLIST_STYLE').checked = (value == true);
+                document.getElementById('WNP_C_PLAYLIST_STYLE').checked = (value == true);
+                break;
+            case 'remove_on_finish' :
+                document.getElementById('WNP_C_PREF_REMOVE_ON_FINISH').checked = (value == true);
+                document.getElementById('WNP_C_REMOVE_ON_FINISH').checked = (value == true);
+                break;
+            case 'use_history' :
+                document.getElementById('WNP_C_PREF_USE_HISTORY').checked = (value == true);
+                document.getElementById('WNP_C_USE_HISTOPRY').checked = (value == true);
+                break;
+            case 'skip_deleted_video' :
+                document.getElementById('WNP_C_PREF_SKIP_DELETED_VIDEO').checked = (value == true);
+                break;
+            case 'use_offtimer' :
+                document.getElementById('WNP_C_PREF_USE_OFFTIMER').checked = (value == true);
+                break;
+            case 'offtimer_minute' :
+                document.getElementById('WNP_C_PREF_OFFTIMER_MINUTE').value = value.toString();
+                break;
+            case 'use_loop_break' :
+                document.getElementById('WNP_C_PREF_USE_LOOP_BREAK').checked = (value == true);
+                break;
+            case 'loop_break_count' :
+                document.getElementById('WNP_C_PREF_LOOP_BREAK_COUNT').value = value.toString();
+                break;
+            default:
+                return;
+        }
+    };
     WNP.open = function(playlist) {
         if (playlist) this.play(playlist);
     };
@@ -3384,7 +3781,7 @@ WNP.BUILD_WNP = BUILD_WNP;
     };
     WNP.wnp = function(name) {
         var loc = 'javascript:void(0)'; /*@cc_on loc = ''; @*/;
-        var w = window.open(loc, name || 'wnp', 'top=0,left=' + ((window.innerWidth || ie.clientWidth()) - WNP.Prefs.WIDTH) + ',width=' + WNP.Prefs.WIDTH + ',height=' + this.Prefs.HEIGHT + ',scrollbars=yes,resizable=yes,menubar=yes,status=no');
+        var w = window.open(loc, name || 'wnp', 'top=0,left=' + ((window.innerWidth || ie.clientWidth()) - WNP.Consts.WNP_INITIAL_PLAYER_WIDTH) + ',width=' + WNP.Consts.WNP_INITIAL_PLAYER_WIDTH + ',height=' +  WNP.Consts.WNP_INITIAL_PLAYER_HEIGHT + ',scrollbars=yes,resizable=yes,menubar=yes,status=no');
         var wnp = w.wnp;
         if (wnp == null) {
             var html = WNP.html();
