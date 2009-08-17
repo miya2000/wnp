@@ -2471,7 +2471,7 @@ function BUILD_WNP(T) {
         $e(d.getElementById('WNP_C_ALWAYS_ON_TOP')).addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            self.applyPreferences({ always_on_top: !self.always_on_top });
+            self.applyPreferences({ always_on_top: !self.prefs.always_on_top });
         }, false);
         $e(d.getElementById('WNP_C_PLAYLIST_STYLE')).addEventListener('click', function(e) {
             e.stopPropagation();
