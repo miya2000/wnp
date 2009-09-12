@@ -3,7 +3,7 @@
 // @description windowised nicovideo player.
 // @author      miya2000
 // @namespace   http://d.hatena.ne.jp/miya2000/
-// @version     1.0.6
+// @version     1.0.7
 // @include     http://www.nicovideo.jp/*
 // @exclude     http://www.nicovideo.jp/watch/*
 // @exclude     http://*http*
@@ -1623,7 +1623,7 @@ function BUILD_FUNC(T) {
     };
     var createStorage = (function() {
         var storage = null;
-        if (typeof window.localStorage != 'undefined') {
+        if (window.localStorage) {
             return function() {
                 return storage || (storage = new LocalStorage('wnp'));
             }
@@ -2833,7 +2833,7 @@ function BUILD_WNP(T) {
     WNP.prototype.hideFooterAfter = function(sec) {
         if (!this._hideFooterStyle) {
             var hide_style_str = [
-                'div.wnp_footer:hover .control { visibility: hidden; }'
+                'div.wnp_footer:hover .control { visibility: hidden; }',
                 'div.wnp_footer:hover .wnp_control_panel { visibility: hidden; }'
             ].join('\n');
             this._hideFooterStyle = addStyle(hide_style_str, this.wnpWindow.document);
@@ -3536,7 +3536,7 @@ function BUILD_WNP(T) {
             use_history           : true,
             skip_deleted_video    : true,
             use_offtimer          : true,
-            offtimer_minute       : 60,
+            offtimer_minute       : 30,
             use_loop_break        : true,
             loop_break_count      : 3
         };
