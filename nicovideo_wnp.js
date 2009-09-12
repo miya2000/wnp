@@ -3,7 +3,7 @@
 // @description windowised nicovideo player.
 // @author      miya2000
 // @namespace   http://d.hatena.ne.jp/miya2000/
-// @version     1.0.5
+// @version     1.0.6
 // @include     http://www.nicovideo.jp/*
 // @exclude     http://www.nicovideo.jp/watch/*
 // @exclude     http://*http*
@@ -797,6 +797,11 @@ function BUILD_FUNC(T) {
         return style;
     }
     T.addStyle = addStyle;
+    function setStyleEnabled(style, enabled) {
+        style.disabled = !enabled;
+        if (style.sheet) style.sheet.disabled = !enabled; // Webkit.
+    }
+    T.setStyleEnabled = setStyleEnabled;
     function getStyle(element, property, pseudo) {
         return (
             element.currentStyle
@@ -1248,6 +1253,7 @@ function BUILD_FUNC(T) {
         this.dispatchEvent({ type: 'dragover', item: element });
     };
     ListUtil.prototype.dragEnd = function() {
+        var element = this.target;
         this.target.style.backgroundColor = this.selectedColor;
         if (this.dropTargetItem) {
             if (this.dropTargetItem !== this.target) {
@@ -1465,7 +1471,7 @@ function BUILD_FUNC(T) {
     T.Cookie = Cookie;
     /**
      * class ListedKeyMap.
-     * Map implementation that has listed keys.
+     * Map implementation which has listed keys.
      */
     function ListedKeyMap() {
         this._keys = [];
@@ -1557,11 +1563,14 @@ function BUILD_FUNC(T) {
                         self.isLoaded = true;
                         self.timer.clear('observe');
                         if (self.onload) try { self.onload(); } catch(e) {}
-                        return;
                     }
                 }
-                catch (e) { postError(e) }
-                if (--retry == 0) self.timer.clear('observe');
+                catch (e) {
+                    if (--retry == 0) {
+                        self.timer.clear('observe');
+                        postError(e);
+                    }
+                }
             }, 200);
         },
         getData : function(key, name) {
@@ -1579,7 +1588,7 @@ function BUILD_FUNC(T) {
      */
     function LocalStorage(category) {
         this.isLoaded = (typeof window.localStorage != 'undefined');
-        this.category = (category != null ? (category + '/') : '');
+        this.category = category || '';
         var self = this;
         setTimeout(function() {
             if (self.onload) try { self.onload(); } catch(e) {}
@@ -1587,13 +1596,13 @@ function BUILD_FUNC(T) {
     }
     LocalStorage.prototype = {
         getData : function(key, name) {
-            return localStorage.getItem(this.category + (name != null ? (name + '.' + key) : key));
+            return localStorage.getItem((this.category ? (this.category + '/') : '') + (name != null ? (name + '.' + key) : key));
         },
         setData : function(key, data, name) {
-            return localStorage.setItem(this.category + (name != null ? (name + '.' + key) : key), data);
+            return localStorage.setItem((this.category ? (this.category + '/') : '') + (name != null ? (name + '.' + key) : key), data);
         },
         clear : function(name) {
-            var prefix = this.category + (name != null ? (name + '.') : '');
+            var prefix = (this.category ? (this.category + '/') : '') + (name != null ? (name + '.') : '');
             var keys = [];
             if (prefix) {
                 for (var i = 0, len = localStorage.length; i < len; i++) {
@@ -1669,15 +1678,29 @@ function BUILD_WNP(T) {
     EventDispatcher.initialize(WNPCore.prototype);
     WNPCore.prototype.initialize = function(document, name) {
         this.element = this.build(document || window.document, name);
-        this.videoinfo = null;
-        this.isPlaying = false;
-        this.style = WNPCore.STYLE_FILL;
-        this.isControlShowing = false;
-        this.autoRelayout = true;
+        this.current = {
+            videoinfo : null,
+            location  : null,
+            isPlaying : false,
+            isPausing : false,
+            isLoading : false,
+            isHiding  : false,
+            isMute    : false,
+            isRepeat  : false,
+            isCommentOff : false,
+            style     : WNPCore.STYLE_FILL,
+            isControlShowing : false,
+            autoRelayout : true,
+            errorWhenDeleted : true,
+            alternativeElement : null,
+            alternativeElementSize : null
+        };
+        this.observeInterval = 500;
         this.emptyView();
         this.timer = new TimerManager(this.element.ownerDocument.defaultView || ie.window(this.element));
     }
     WNPCore.prototype.build = function(document, name) {
+        this._ = {};
         var dv = document.createElement('div');
         var borderBox = browser.mozilla ? '-moz-box-sizing : border-box;' : browser.webkit ? '-webkit-box-sizing : border-box;' : '';
         dv.style.cssText = [
@@ -1699,25 +1722,25 @@ function BUILD_WNP(T) {
             '</div>',
             '<iframe name="' + (name || '') + '" style="margin: 0; padding: 0; border: none; " frameborder="0" scrolling="no" width="970" height="540" src="about:blank"></iframe>',
         ].join('');
-        this._container = dv;
-        this._loadingbx = dv.childNodes[0];
-        this._loadimage = dv.childNodes[0].getElementsByTagName('img')[0];
-        this._caption = dv.childNodes[0].getElementsByTagName('p')[0];
-        this._nicoframe = dv.childNodes[1];
-        return this._container;
+        this._.container = dv;
+        this._.loadingbx = dv.childNodes[0];
+        this._.loadimage = dv.childNodes[0].getElementsByTagName('img')[0];
+        this._.caption = dv.childNodes[0].getElementsByTagName('p')[0];
+        this._.nicoframe = dv.childNodes[1];
+        return this._.container;
     };
     WNPCore.prototype.show = function() {
-        this.isHiding = false;
+        this.current.isHiding = false;
         this.element.style.width = '100%';
         this.element.style.height = '100%';
         this.layout();
     };
     WNPCore.prototype.hide = function() {
-        this.isHiding = true;
+        this.current.isHiding = true;
         this.element.style.width = '0';
         this.element.style.height = '0';
         this.element.style.borderWidth = '0';
-        this._loadingbx.style.display = 'none';
+        this._.loadingbx.style.display = 'none';
     };
     WNPCore.prototype.detach = function() {
         if (this.element && this.element.parentNode) {
@@ -1725,7 +1748,7 @@ function BUILD_WNP(T) {
         }
     };
     WNPCore.prototype.nico = function() {
-        var nicoWindow   = this._nicoframe.contentWindow;
+        var nicoWindow   = this._.nicoframe.contentWindow;
         var nicoDocument = (nicoWindow) ? nicoWindow.document : null;
         var flvplayer    = (nicoDocument) ? nicoDocument.getElementById('flvplayer') : null;
         return {
@@ -1735,58 +1758,62 @@ function BUILD_WNP(T) {
         }
     };
     WNPCore.prototype.loadingStart = function() {
-        this.isLoading = true;
-        this._caption.innerHTML = 'now loading.';
-        this._caption.style.display = '';
+        this.current.isLoading = true;
+        this._.caption.innerHTML = 'now loading.';
+        this._.caption.style.display = '';
     };
     WNPCore.prototype.loadingEnd = function() {
-        this.isLoading = false;
-        this._caption.style.display = 'none';
+        this.current.isLoading = false;
+        this._.caption.style.display = 'none';
     };
     WNPCore.prototype.setAlternativeView = function(element, width, height) {
         if (element == null) {
-            this.alternativeElement = null;
-            this.alternativeElementSize = null;
+            this.current.alternativeElement = null;
+            this.current.alternativeElementSize = null;
             return;
         }
-        this.alternativeElement = element;
-        this.alternativeElementSize = { width: width, height: height };
-        if (this.style == WNPCore.STYLE_ALTERNATE) {
+        this.current.alternativeElement = element;
+        this.current.alternativeElementSize = { width: width, height: height };
+        if (this.current.style == WNPCore.STYLE_ALTERNATE) {
             this.alternativeView();
         }
     };
     WNPCore.prototype.play = function(videoinfo) {
         // resume if 0 arguments.
-        if (!videoinfo && this.isPlaying) {
+        if (!videoinfo && this.current.isPlaying) {
             this.resume();
             return;
         }
-        this._container.style.backgroundColor = 'black';
-        this.videoinfo = videoinfo;
+        this._.container.style.backgroundColor = 'black';
+        this.current.videoinfo = videoinfo;
         var video_url = videoinfo.url || videoinfo.id || videoinfo;
         if (!/^http:/.test(video_url)) video_url = 'http://www.nicovideo.jp/watch/' + video_url;
-        if (this._nicoframe.parentNode === this._container) {
-            this._container.removeChild(this._nicoframe);
+        if (this._.nicoframe.parentNode === this._.container) {
+            this._.container.removeChild(this._.nicoframe);
         }
-        this._nicoframe.src = video_url;
-        this.isPlaying = true;
+        this._.nicoframe.src = video_url;
+        this.current.isPlaying = true;
         this.loadingStart();
         this.layout();
-        this._container.appendChild(this._nicoframe);
-        this.currentLocation = this._nicoframe.src;
+        this._.container.appendChild(this._.nicoframe);
+        this.current.location = this._.nicoframe.src;
+        this.current.loaded = 0;
+        this.current.playhead = 0;
         this.observeLoad();
     };
     WNPCore.prototype.stop = function() {
-        this.isPlaying = false;
-        this.isPausing = false;
+        this.current.isPlaying = false;
+        this.current.isPausing = false;
         this.timer.clear('observe');
         this.emptyView();
-        this.videoinfo = null;
-        this.currentLocation = null;
-        this.alternativeElement = null;
+        this.current.videoinfo = null;
+        this.current.location = null;
+        this.current.loaded = 0;
+        this.current.playhead = 0;
+        this.current.alternativeElement = null;
     };
     WNPCore.prototype.pause = function() {
-        this.isPausing = true;
+        this.current.isPausing = true;
         var flvplayer = this.nico().flvplayer;
         if (!flvplayer) return;
         try {
@@ -1797,7 +1824,7 @@ function BUILD_WNP(T) {
         catch(e) { postError(e) }
     };
     WNPCore.prototype.resume = function() {
-        this.isPausing = false;
+        this.current.isPausing = false;
         var flvplayer = this.nico().flvplayer;
         if (!flvplayer) return;
         try {
@@ -1807,18 +1834,24 @@ function BUILD_WNP(T) {
         }
         catch(e) { postError(e) }
     };
+    WNPCore.prototype.setStyle = function(style) {
+        if (this.current.style != style) {
+            this.current.style = style;
+            this.layout();
+        }
+    };
     WNPCore.prototype.layout = function() {
-        if (this.isHiding) return;
-        if (!this.isPlaying) {
+        if (this.current.isHiding) return;
+        if (!this.current.isPlaying) {
             this.emptyView();
             return;
         }
-        if (this.isLoading && this.style === WNPCore.STYLE_FILL) {
+        if (this.current.isLoading && this.current.style === WNPCore.STYLE_FILL) {
             this.alternativeView();
-            this.style = WNPCore.STYLE_FILL;
+            this.current.style = WNPCore.STYLE_FILL;
             return;
         }
-        switch (this.style) {
+        switch (this.current.style) {
             case WNPCore.STYLE_RESTORE:   this.restoreView();     break;
             case WNPCore.STYLE_ALTERNATE: this.alternativeView(); break;
             default:                      this.fillView();        break;
@@ -1828,35 +1861,34 @@ function BUILD_WNP(T) {
         try {
             var nico = this.nico();
             var p = getAbsolutePosition(nico.flvplayer);
-            if (this.currentSize.viewW && this.currentSize.viewW < Consts.ORG_PLAYER_MINIMUM_WIDTH) {
-                p.x += (Consts.ORG_PLAYER_MINIMUM_WIDTH - this.currentSize.viewW) / 2;
+            if (this.current.size.viewW && this.current.size.viewW < Consts.ORG_PLAYER_MINIMUM_WIDTH) {
+                p.x += (Consts.ORG_PLAYER_MINIMUM_WIDTH - this.current.size.viewW) / 2;
             }
             nico.window.scrollTo(p.x, p.y);
         }
         catch(e) { postError(e) }
     };
     WNPCore.prototype.emptyView = function() {
-        this._container.style.borderWidth = '0';
-        this._container.style.backgroundColor = '#4F586D';
-        this._loadingbx.style.display = 'none';
-        if (this._nicoframe.parentNode == this._container) {
-            this._container.removeChild(this._nicoframe);
+        this._.container.style.borderWidth = '0';
+        this._.container.style.backgroundColor = '#4F586D';
+        this._.loadingbx.style.display = 'none';
+        if (this._.nicoframe.parentNode == this._.container) {
+            this._.container.removeChild(this._.nicoframe);
         }
     };
     WNPCore.prototype.fillView = function() {
-        if (!this.isPlaying) return;
-        this.style = WNPCore.STYLE_FILL;
-        this.isControlShowing = false;
-        if (!this.isPlaying) return;
+        if (!this.current.isPlaying) return;
+        this.current.style = WNPCore.STYLE_FILL;
+        this.current.isControlShowing = false;
         try {
             // calculate player width, height.
-            var w = this._container.offsetWidth;
-            var h = this._container.offsetHeight;
-            this._nicoframe.style.display = 'none'; // for performance.
-            this._nicoframe.style.visibility = 'hidden'; // for performance.
-            this._nicoframe.style.width = '100%';
-            this._nicoframe.style.height = '100%';
-            this._loadingbx.style.display = 'none';
+            var w = this._.container.offsetWidth;
+            var h = this._.container.offsetHeight;
+            this._.nicoframe.style.display = 'none'; // for performance.
+            this._.nicoframe.style.visibility = 'hidden'; // for performance.
+            this._.nicoframe.style.width = '100%';
+            this._.nicoframe.style.height = '100%';
+            this._.loadingbx.style.display = 'none';
             var viewW = w; // wmp frame
             var viewH = Math.floor(viewW * Consts.ORG_PLAYER_VIEW_HEIGHT / Consts.ORG_PLAYER_VIEW_WIDTH);
             if (viewH > h) {
@@ -1865,15 +1897,15 @@ function BUILD_WNP(T) {
             }
             var playerW = Math.max(viewW, Consts.ORG_PLAYER_MINIMUM_WIDTH);
             var playerH = viewH + Consts.ORG_PLAYER_CONTROL_HEIGHT;
-            this.currentSize = { viewW: viewW, viewH: viewH, playerW: playerW, playerH: playerH };
+            this.current.size = { viewW: viewW, viewH: viewH, playerW: playerW, playerH: playerH };
             // set container's border.
-            this._container.style.borderWidth = 
+            this._.container.style.borderWidth = 
                 Math.ceil((h - viewH) / 2) + 'px ' + 
                 Math.floor((w - viewW) / 2) + 'px ' + 
                 Math.floor((h - viewH) / 2) + 'px ' + 
                 Math.ceil((w - viewW) / 2) + 'px';
             // player resize.
-            if (!this._nicoframe.contentWindow || !this._nicoframe.contentWindow.document) return;
+            if (!this._.nicoframe.contentWindow || !this._.nicoframe.contentWindow.document) return;
             var nico = this.nico();
             if (!browser.mozilla) {
                 nico.document.documentElement.style.overflow = 'hidden';
@@ -1882,62 +1914,62 @@ function BUILD_WNP(T) {
             var flvplayer = nico.flvplayer;
             // set player width, height.
             if (nico.window.maximizePlayer !== WNPCore.emptyFunc) {
-                this._org_maximizePlayer = nico.window.maximizePlayer;
+                this._.org_maximizePlayer = nico.window.maximizePlayer;
                 nico.window.maximizePlayer = WNPCore.emptyFunc;
             }
-            if (!this._wnp_restorePlayer) {
+            if (!this._.wnp_restorePlayer) {
                 var self = this;
-                this._wnp_restorePlayer = function() {
+                this._.wnp_restorePlayer = function() {
                     try {
                         java.lang.Thread.sleep(1000); /// prevent auto restorePlayer when then video finished.
                     }
                     catch(e) { postError(e) }
                     try {
-                        self._org_restorePlayer();
+                        self._.org_restorePlayer();
                     }
                     catch(e) { postError(e) }
                 }
             }
-            if (nico.window.restorePlayer !== this._wnp_restorePlayer) {
-                this._org_restorePlayer = nico.window.restorePlayer;
-                nico.window.restorePlayer = this._wnp_restorePlayer;
+            if (nico.window.restorePlayer !== this._.wnp_restorePlayer) {
+                this._.org_restorePlayer = nico.window.restorePlayer;
+                nico.window.restorePlayer = this._.wnp_restorePlayer;
             }
             flvplayer.ext_setVideoSize('fit');
             flvplayer.style.width = flvplayer.parentNode.style.width = playerW + 'px';    // for scroll.
             flvplayer.style.height = flvplayer.parentNode.style.height = playerH + 'px';
             
             // scroll to player top-left.
-            this._nicoframe.style.display = '';
+            this._.nicoframe.style.display = '';
             this.sight();
-            this._nicoframe.style.visibility = 'visible';
+            this._.nicoframe.style.visibility = 'visible';
         }
         catch (e) {
             postError(e);
-            this._nicoframe.style.display = '';
-            this._nicoframe.style.visibility = 'visible';
+            this._.nicoframe.style.display = '';
+            this._.nicoframe.style.visibility = 'visible';
         }
     };
     WNPCore.prototype.restoreView = function() {
-        if (!this.isPlaying) return;
-        this.style = WNPCore.STYLE_RESTORE;
-        this.isControlShowing = false;
-        this._nicoframe.style.display = 'none'; // for performance.
-        this._nicoframe.style.width = '100%';
-        this._nicoframe.style.height = '100%';
-        this._container.style.borderWidth = '0';
-        this._loadingbx.style.display = 'none';
+        if (!this.current.isPlaying) return;
+        this.current.style = WNPCore.STYLE_RESTORE;
+        this.current.isControlShowing = false;
+        this._.nicoframe.style.display = 'none'; // for performance.
+        this._.nicoframe.style.width = '100%';
+        this._.nicoframe.style.height = '100%';
+        this._.container.style.borderWidth = '0';
+        this._.loadingbx.style.display = 'none';
         try {
             var nico = this.nico();
             if (!browser.mozilla) {
-                nico.document.documentElement.style.overflow = (this.isPlaying) ? 'scroll' : 'hidden';
+                nico.document.documentElement.style.overflow = 'scroll';
             }
-            if (this._org_maximizePlayer && nico.window.maximizePlayer === WNPCore.emptyFunc) {
-                nico.window.maximizePlayer = this._org_maximizePlayer;
-                delete this._org_maximizePlayer;
+            if (this._.org_maximizePlayer && nico.window.maximizePlayer === WNPCore.emptyFunc) {
+                nico.window.maximizePlayer = this._.org_maximizePlayer;
+                delete this._.org_maximizePlayer;
             }
-            if (this._org_restorePlayer && nico.window.restorePlayer === this._wnp_restorePlayer) {
-                nico.window.restorePlayer = this._org_restorePlayer;
-                delete this._org_restorePlayer;
+            if (this._.org_restorePlayer && nico.window.restorePlayer === this._.wnp_restorePlayer) {
+                nico.window.restorePlayer = this._.org_restorePlayer;
+                delete this._.org_restorePlayer;
             }
             var flvplayer = nico.flvplayer
             flvplayer.style.width = flvplayer.parentNode.style.width = '';
@@ -1951,22 +1983,22 @@ function BUILD_WNP(T) {
             }
         }
         catch(e) { postError(e) }
-        this._nicoframe.style.display = '';
+        this._.nicoframe.style.display = '';
     };
     WNPCore.prototype.alternativeView = function() {
-        if (!this.isPlaying) return;
-        this.style = WNPCore.STYLE_ALTERNATE;
-        this._nicoframe.style.width = '1px';  // minimum viewing.
-        this._nicoframe.style.height = '1px';
-        this._container.style.borderWidth = '0';
-        this._loadingbx.style.display = 'none';
+        if (!this.current.isPlaying) return;
+        this.current.style = WNPCore.STYLE_ALTERNATE;
+        this._.nicoframe.style.width = '1px';  // minimum viewing.
+        this._.nicoframe.style.height = '1px';
+        this._.container.style.borderWidth = '0';
+        this._.loadingbx.style.display = 'none';
         // set alternative element.
-        var alterElement = this.alternativeElement;
-        var alterSize = this.alternativeElementSize || {};
+        var alterElement = this.current.alternativeElement;
+        var alterSize = this.current.alternativeElementSize || {};
         if (!alterElement) {
-            alterElement = this._container.ownerDocument.createElement('img');
-            if (this.videoinfo && this.videoinfo.thumbnail) {
-                alterElement.src = this.videoinfo.thumbnail;
+            alterElement = this._.container.ownerDocument.createElement('img');
+            if (this.current.videoinfo && this.current.videoinfo.thumbnail) {
+                alterElement.src = this.current.videoinfo.thumbnail;
                 alterSize = { width: 130, height: 100 };
             }
             else {
@@ -1978,64 +2010,64 @@ function BUILD_WNP(T) {
         alterElement.style.margin = alterElement.style.padding = '0';
         alterElement.style.border = 'none';
         alterElement.style.backgroundColor = 'black';
-        this._loadingbx.replaceChild(alterElement, this._loadimage);
-        this._loadimage = alterElement;
+        this._.loadingbx.replaceChild(alterElement, this._.loadimage);
+        this._.loadimage = alterElement;
         // set loadingbx border.
         var imageW = alterSize.width || 130;
         var imageH = alterSize.height || 100;
-        var w = this._container.offsetWidth, h = this._container.offsetHeight;
+        var w = this._.container.offsetWidth, h = this._.container.offsetHeight;
         var viewW = w - 30; // fine adjustment.
         var viewH = Math.floor(viewW * imageH / imageW);
         if (viewH > h) {
             viewH = h;
             viewW = Math.floor(viewH * imageW / imageH);
         }
-        this._loadingbx.style.borderWidth = 
+        this._.loadingbx.style.borderWidth = 
             Math.ceil((h - viewH) / 2) + 'px ' + 
             Math.floor((w - viewW) / 2) + 'px ' + 
             Math.floor((h - viewH) / 2) + 'px ' + 
             Math.ceil((w - viewW) / 2) + 'px';
-        this._loadingbx.style.display = 'block';
+        this._.loadingbx.style.display = 'block';
     };
     WNPCore.prototype.setControlShowing = function(show) {
-        if (!this.isPlaying || this.style != WNPCore.STYLE_FILL) return;
-        if (this.isControlShowing === !!show) return;
-        this.isControlShowing = !!show;
+        if (!this.current.isPlaying || this.current.style != WNPCore.STYLE_FILL) return;
+        if (this.current.isControlShowing === !!show) return;
+        this.current.isControlShowing = !!show;
         var controlHeight = Consts.ORG_PLAYER_CONTROL_HEIGHT;
         this.nico().window.scrollBy(0, controlHeight * (show ? 1 : -1));
     };
     WNPCore.prototype.setCommentOff = function(off) {
-        this.isCommentOff = !!off;
-        if (!this.isPlaying) return;
+        this.current.isCommentOff = !!off;
+        if (!this.current.isPlaying) return;
         var flvplayer = this.nico().flvplayer;
         if (!flvplayer) return;
         try {
-            flvplayer.ext_setCommentVisible(!this.isCommentOff);
+            flvplayer.ext_setCommentVisible(!this.current.isCommentOff);
         }
         catch(e) { postError(e) }
     };
     WNPCore.prototype.setRepeat = function(repeat) {
-        this.isRepeat = !!repeat;
-        if (!this.isPlaying) return;
+        this.current.isRepeat = !!repeat;
+        if (!this.current.isPlaying) return;
         var flvplayer = this.nico().flvplayer;
         if (!flvplayer) return;
         try {
-            flvplayer.ext_setRepeat(this.isRepeat);
+            flvplayer.ext_setRepeat(this.current.isRepeat);
         }
         catch(e) { postError(e) }
     };
     WNPCore.prototype.setMute = function(mute) {
-        this.isMute = !!mute;
-        if (!this.isPlaying) return;
+        this.current.isMute = !!mute;
+        if (!this.current.isPlaying) return;
         var flvplayer = this.nico().flvplayer;
         if (!flvplayer) return;
         try {
-            flvplayer.ext_setMute(this.isMute);
+            flvplayer.ext_setMute(this.current.isMute);
         }
         catch(e) { postError(e) }
     };
     WNPCore.prototype.seek = function(time) {
-        if (!this.isPlaying) return;
+        if (!this.current.isPlaying) return;
         var flvplayer = this.nico().flvplayer;
         if (!flvplayer) return;
         try {
@@ -2073,7 +2105,7 @@ function BUILD_WNP(T) {
         catch(e) { postError(e) }
     };
     WNPCore.prototype.seekTo = function(sec) {
-        if (!this.isPlaying) return;
+        if (!this.current.isPlaying) return;
         var flvplayer = this.nico().flvplayer;
         if (!flvplayer) return;
         try {
@@ -2088,94 +2120,54 @@ function BUILD_WNP(T) {
         }
         catch(e) { postError(e) }
     };
-    WNPCore.prototype.current = function() {
-        if (!this.isPlaying) return 0;
-        var flvplayer = this.nico().flvplayer;
-        if (!flvplayer) return 0;
-        try {
-            var cur = Number(flvplayer.ext_getPlayheadTime());
-            return isNaN(cur) ? 0 : cur;
-        }
-        catch(e) { 
-            postError(e);
-            return 0;
-        }
+    WNPCore.prototype.playhead = function() {
+        if (!this.current.isPlaying) return 0;
+        return this.current.playhead || 0;
     };
     WNPCore.prototype.length = function() {
-        if (!this.isPlaying) return -1;
-        if (this.videoinfo.length != null) return this.videoinfo.length;
-        var flvplayer = this.nico().flvplayer;
-        if (!flvplayer) return -1;
-        try {
-            var length = Number(flvplayer.ext_getTotalTime());
-            if (isNaN(length)) return 0;
-            this.videoinfo.length = length;
-            return length;
-        }
-        catch(e) { 
-            postError(e);
-            return -1;
-        }
+        if (!this.current.isPlaying) return -1;
+        return this.current.videoinfo.length;
     };
     WNPCore.prototype.volume = function(vol) {
-        if (!this.isPlaying) return 0;
-        var flvplayer = this.nico().flvplayer;
-        if (!flvplayer) return 0;
-        try {
-            var cur = Number(flvplayer.ext_getVolume());
-            if (vol == null) return cur;
-            var to = cur + Number(vol);
-            if (to > 100) to = 100;
-            if (to < 0  ) to = 0;
-            flvplayer.ext_setVolume(to);
-            return to;
-        }
-        catch(e) { 
-            postError(e);
-            return 0;
-        }
+        if (vol == null || isNaN(vol)) return this.current.volume;
+        var cur = this.current.volume;
+        if (cur == null) cur = 50;
+        var to = cur + Number(vol);
+        return this.volumeTo(to);
     };
     WNPCore.prototype.volumeTo = function(vol) {
-        if (!this.isPlaying) return 0;
+        if (isNaN(vol)) throw "invalid vol.";
+        var to = Number(vol);
+        if (to > 100) to = 100;
+        if (to < 0  ) to = 0;
+        this.current.volume = to;
         var flvplayer = this.nico().flvplayer;
-        if (!flvplayer) return 0;
-        try {
-            var to = Number(vol);
-            if (to > 100) to = 100;
-            if (to < 0  ) to = 0;
-            flvplayer.ext_setVolume(to);
-            return to;
+        if (flvplayer) {
+            try {
+                flvplayer.ext_setVolume(to);
+            }
+            catch(e) { 
+                postError(e);
+            }
         }
-        catch(e) { 
-            postError(e);
-            return 0;
-        }
+        return to;
     };
     WNPCore.prototype.loaded = function() {
-        if (!this.isPlaying) return 0;
-        var flvplayer = this.nico().flvplayer;
-        if (!flvplayer) return 0;
-        try {
-            var cur = Number(flvplayer.ext_getLoadedRatio());
-            return isNaN(cur) ? 0 : cur;
-        }
-        catch(e) { 
-            postError(e);
-            return 0;
-        }
+        if (!this.current.isPlaying) return 0;
+        return this.current.loaded || 0;
     };
-    WNPCore.prototype.commentNum = function() {
-        if (!this.isPlaying) return 0;
+    WNPCore.prototype.commentNum = function() { // not work on new player.
+        if (!this.current.isPlaying) return 0;
         var flvplayer = this.nico().flvplayer;
         if (!flvplayer) return 0;
         var num = Number(flvplayer.GetVariable('last_resno'));
         return num;
     };
     WNPCore.prototype.layoutIfNecessary = function() {
-        if (!this.autoRelayout) return;
+        if (!this.current.autoRelayout) return;
         if (!this.containerSize) this.containerSize = {};
-        var container = this._container;
-        var containerSize = this._containerSize;
+        var container = this._.container;
+        var containerSize = this._.containerSize;
         if (containerSize.width != container.offsetWidth || containerSize.height != container.offsetHeight) {
             containerSize.width = container.offsetWidth;
             containerSize.height = container.offsetHeight;
@@ -2185,7 +2177,7 @@ function BUILD_WNP(T) {
     };
     WNPCore.prototype.observeLoad = function() {
         var self = this;
-        this._containerSize = { width: this._container.offsetWidth, height: this._container.offsetHeight };
+        this._.containerSize = { width: this._.container.offsetWidth, height: this._.container.offsetHeight };
         var retry = 50;
         this.timer.setInterval('observe', function() {
             try {
@@ -2219,7 +2211,7 @@ function BUILD_WNP(T) {
                         return;
                     }
                 }
-                if (self.errorWhenDeleted) {
+                if (self.current.errorWhenDeleted) {
                     // delete check 1.
                     if (nico.document.getElementById('deleted_message_default')) {
                         self.stop();
@@ -2293,10 +2285,10 @@ function BUILD_WNP(T) {
                     if (typeof self.onerror == 'function') try { self.onerror(event); } catch(e) { postError(e) }
                     return;
                 }
-                if (self.currentLocation != nico.window.location.href) {
-                    var oldLocation = self.currentLocation;
+                if (self.current.location != nico.window.location.href) {
+                    var oldLocation = self.current.location;
                     var newLocation = nico.window.location.href;
-                    self.currentLocation = newLocation;
+                    self.current.location = newLocation;
                     self.observeLoad();
                     self.dispatchEvent({ type: 'jump', from: oldLocation, to: newLocation });
                     return;
@@ -2305,7 +2297,7 @@ function BUILD_WNP(T) {
                 var flvplayer = nico.flvplayer;
                 // start check.
                 if (!videoStarted) {
-                    if (!self.isPausing) {
+                    if (!self.current.isPausing) {
                         if (flvplayer.ext_getStatus() != 'playing') {
                             flvplayer.ext_play(1);
                             return;
@@ -2318,12 +2310,31 @@ function BUILD_WNP(T) {
                     if (self.onstart) try { self.onstart(self) } catch(e) { postError(e) }
                 }
                 if (self.style == WNPCore.STYLE_FILL && flvplayer.ext_getVideoSize() != 'fit') { // for nicowari
+                    flvplayer.ext_setVideoSize('normal');
+                    self.style = WNPCore.STYLE_FILL;
                     if (!self.timer.timeouts['relayout']) {
                         self.timer.setTimeout('relayout', function() {
                             self.layout();
                         }, 1000);
                     }
                 }
+                // save current status
+                var volume = flvplayer.ext_getVolume();
+                if (volume != null) self.current.volume = Number(volume);
+                var playhead = flvplayer.ext_getPlayheadTime();
+                if (playhead != null) self.current.playhead = Number(playhead);
+                if (self.current.loaded !== 1) {
+                    var loaded = flvplayer.ext_getLoadedRatio();
+                    if (loaded != null) self.current.loaded = Number(loaded);
+                }
+                
+                // backward seek event.
+                if (playhead < prePos) {
+                    self.dispatchEvent({ type: 'back' });
+                    if (self.onback) try { self.onback(self) } catch(e) { postError(e) }
+                }
+                prePos = playhead;
+                
                 // finish check.
                 if (flvplayer.ext_getStatus() == 'end') {
                     if (flvplayer.ext_isRepeat()) return;
@@ -2331,18 +2342,12 @@ function BUILD_WNP(T) {
                         videoFinished = true;
                         self.dispatchEvent({ type: 'finish' });
                         if (self.onfinish) try { self.onfinish(self) } catch(e) { postError(e) }
+                        if (!self.isPlaying) return;
                     }
                 }
                 else {
                     videoFinished = false;
                 }
-                // backward seek event.
-                var curPos = Number(flvplayer.ext_getPlayheadTime()) || 0;
-                if (curPos < prePos) {
-                    self.dispatchEvent({ type: 'back' });
-                    if (self.onback) try { self.onback(self) } catch(e) { postError(e) }
-                }
-                prePos = curPos;
             }
             catch (e) {
                 postError(e);
@@ -2358,15 +2363,18 @@ function BUILD_WNP(T) {
         this.loadingEnd();
         try {
             var nico = this.nico();
-            this.videoinfo = nico.window.Video;
+            this.current.videoinfo = nico.window.Video;
             var flvplayer = nico.flvplayer;
             flvplayer.SetVariable('Overlay.onRelease', ''); // onPress 
             flvplayer.SetVariable('Overlay.hitArea', 0);
-            this.setCommentOff(this.isCommentOff);
-            this.setRepeat(this.isRepeat);
-            this.setMute(this.isMute);
-            if (this.isPausing) {
+            this.setCommentOff(this.current.isCommentOff);
+            this.setRepeat(this.current.isRepeat);
+            this.setMute(this.current.isMute);
+            if (this.current.isPausing) {
                 this.pause();
+            }
+            if (this.current.volume != null) {
+                this.volumeTo(this.current.volume);
             }
             // http://orera.g.hatena.ne.jp/miya2000/20090711/p0
             if (browser.opera && nico.window.Element.scrollTo && !/setTimeout/.test(nico.window.Element.scrollTo)) {
@@ -2426,18 +2434,18 @@ function BUILD_WNP(T) {
         $e(d.getElementById('WNP_C_NICO_REPEAT')).addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            self.applyPreferences({ repeat: !self.wnpCore.isRepeat });
+            self.applyPreferences({ repeat: !self.wnpCore.current.isRepeat });
         }, false);
         $e(d.getElementById('WNP_C_NICO_COMM')).addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            self.applyPreferences({ comment_off: !self.wnpCore.isCommentOff });
+            self.applyPreferences({ comment_off: !self.wnpCore.current.isCommentOff });
             self.showControlPanel();
         }, false);
         $e(d.getElementById('WNP_C_NICO_MUTE')).addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            self.applyPreferences({ mute: !self.wnpCore.isMute });
+            self.applyPreferences({ mute: !self.wnpCore.current.isMute });
             self.showControlPanel();
         }, false);
         $e(d.getElementById('WNP_C_PLAYLIST_URI')).addEventListener('click', function(e) {
@@ -2463,6 +2471,9 @@ function BUILD_WNP(T) {
         $e(d.getElementById('WNP_HEADER')).addEventListener('click', function(e) {
             self.menuToggle();
         }, false);
+        $e(d.getElementById('WNP_HEADER')).addEventListener('mousemove', function(e) {
+            self.hideHeaderAfter(5000);
+        }, false);
         $e(d.getElementById('WNP_C_SCREEN')).addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
@@ -2486,10 +2497,13 @@ function BUILD_WNP(T) {
             self.applyPreferences({ use_history: e.currentTarget.checked }, true);
         }, false);
         $e(d.getElementById('WNP_FOOTER')).addEventListener('click', function(e) {
-            self.wnpCore.setControlShowing(!self.wnpCore.isControlShowing);
+            self.wnpCore.setControlShowing(!self.wnpCore.current.isControlShowing);
         }, false);
         $e(d.getElementById('WNP_FOOTER')).addEventListener('mouseover', function(e) {
             self.restoreControlPanel();
+        }, false);
+        $e(d.getElementById('WNP_FOOTER')).addEventListener('mousemove', function(e) {
+            self.hideFooterAfter(5000);
         }, false);
         $e(d.getElementById('WNP_C_NICO_PAUSE')).addEventListener('click', function(e) {
             e.stopPropagation();
@@ -2497,17 +2511,19 @@ function BUILD_WNP(T) {
         }, false);
         $e(d.getElementById('WNP_C_NICO_SEEKBAR')).addEventListener('click', function(e) {
             e.stopPropagation();
-            if (!self.wnpCore.isPlaying) return;
+            if (!self.wnpCore.current.isPlaying) return;
             var seekbar = e.currentTarget;
             var width = seekbar.offsetWidth;
             var loc = (e.offsetX != null) ? e.offsetX : (e.layerX - seekbar.offsetLeft);
             var len = self.wnpCore.length();
-            self.wnpCore.seekTo(len * (loc / width));
-            self.updateControlPanelStatus();
+            if (len) {
+                self.wnpCore.seekTo(len * (loc / width));
+                self.updateControlPanelStatus();
+            }
         }, false);
         $e(d.getElementById('WNP_C_NICO_VOLUMEBAR')).addEventListener('click', function(e) {
             e.stopPropagation();
-            if (!self.wnpCore.isPlaying) return;
+            if (!self.wnpCore.current.isPlaying) return;
             var volumebar = e.currentTarget;
             var width = volumebar.offsetWidth;
             var loc = (e.offsetX != null) ? e.offsetX : (e.layerX - volumebar.offsetLeft);
@@ -2637,7 +2653,7 @@ function BUILD_WNP(T) {
                 e.preventDefault();
             }
             if (String.fromCharCode(e.keyCode||e.which).toLowerCase() == 'c') {
-                self.applyPreferences({ comment_off: !self.wnpCore.isCommentOff });
+                self.applyPreferences({ comment_off: !self.wnpCore.current.isCommentOff });
                 self.showControlPanel();
                 e.preventDefault();
             }
@@ -2646,12 +2662,12 @@ function BUILD_WNP(T) {
                 e.preventDefault();
             }
             if (String.fromCharCode(e.keyCode||e.which).toLowerCase() == 'r') {
-                self.applyPreferences({ repeat: !self.wnpCore.isRepeat });
+                self.applyPreferences({ repeat: !self.wnpCore.current.isRepeat });
                 self.showControlPanel();
                 e.preventDefault();
             }
             if (String.fromCharCode(e.keyCode||e.which).toLowerCase() == 'm') {
-                self.applyPreferences({ mute: !self.wnpCore.isMute });
+                self.applyPreferences({ mute: !self.wnpCore.current.isMute });
                 self.showControlPanel();
                 e.preventDefault();
             }
@@ -2778,11 +2794,13 @@ function BUILD_WNP(T) {
         controlPanel.style.visibility = 'hidden';
     };
     WNP.prototype.updateControlPanelStatus = function() {
-        var cur = this.wnpCore.current();
+        var cur = this.wnpCore.playhead();
         var len = this.wnpCore.length();
-        this.wnpWindow.document.getElementById('WNP_C_NICO_SEEKBAR').firstChild.firstChild.style.width = (len ? Math.ceil(cur / len * 100) + '%' : '0');
-        var vol = this.wnpCore.volume() || 0;
-        this.wnpWindow.document.getElementById('WNP_C_NICO_VOLUMEBAR').firstChild.firstChild.style.width = Math.ceil(vol / 100 * 100) + '%';
+        this.wnpWindow.document.getElementById('WNP_C_NICO_SEEKBAR').firstChild.firstChild.style.width = (len ? (Math.ceil(cur / len * 100) + '%') : '0');
+        var vol = this.wnpCore.volume();
+        if (vol != null) {
+            this.wnpWindow.document.getElementById('WNP_C_NICO_VOLUMEBAR').firstChild.firstChild.style.width = Math.ceil(vol / 100 * 100) + '%';
+        }
     };
     WNP.prototype.observingVideoStart = function() {
         var self = this;
@@ -2797,6 +2815,35 @@ function BUILD_WNP(T) {
         this.timer.clear('controlPanel');
         var controlPanel = this.wnpWindow.document.getElementById('WNP_CONTROL_PANEL');
         controlPanel.style.visibility = '';
+    };
+    WNP.prototype.hideHeaderAfter = function(sec) {
+        if (!this._hideHeaderStyle) {
+            var hide_style_str = [
+                'div.wnp_header:hover .control { visibility: hidden; }'
+            ].join('\n');
+            this._hideHeaderStyle = addStyle(hide_style_str, this.wnpWindow.document);
+        }
+        var style = this._hideHeaderStyle;
+        setStyleEnabled(style, false);
+        var self = this;
+        this.timer.setTimeout('hideHeaderAfter', function() {
+            setStyleEnabled(style, true);
+        }, sec);
+    };
+    WNP.prototype.hideFooterAfter = function(sec) {
+        if (!this._hideFooterStyle) {
+            var hide_style_str = [
+                'div.wnp_footer:hover .control { visibility: hidden; }'
+                'div.wnp_footer:hover .wnp_control_panel { visibility: hidden; }'
+            ].join('\n');
+            this._hideFooterStyle = addStyle(hide_style_str, this.wnpWindow.document);
+        }
+        var style = this._hideFooterStyle;
+        setStyleEnabled(style, false);
+        var self = this;
+        this.timer.setTimeout('hideHeaderAfter', function() {
+            setStyleEnabled(style, true);
+        }, sec);
     };
     WNP.prototype.menuToggle = function() {
         if (this.isMenuShowing) {
@@ -2975,7 +3022,7 @@ function BUILD_WNP(T) {
         if (forHistory) {
             playThis = function(e) {
                 var pl = createPlayInfo(li);
-                if (self.wnpCore.isPlaying) {
+                if (self.wnpCore.current.isPlaying) {
                     WNP.insert(pl);
                 }
                 else {
@@ -3079,7 +3126,7 @@ function BUILD_WNP(T) {
         a.onmouseout = null;
     };
     WNP.prototype.playToggle = function() {
-        if (this.wnpCore.isPlaying) this.stop();
+        if (this.wnpCore.current.isPlaying) this.stop();
         else {
             if (!this.playlistIterator.item) {
                 this.playlistIterator.first();
@@ -3088,11 +3135,11 @@ function BUILD_WNP(T) {
         }
     };
     WNP.prototype.pauseToggle = function() {
-        if (!this.wnpCore.isPlaying) {
+        if (!this.wnpCore.current.isPlaying) {
             this.playToggle();
             return;
         }
-        if (this.wnpCore.isPausing) {
+        if (this.wnpCore.current.isPausing) {
             this.wnpCore.resume();
         }
         else {
@@ -3102,7 +3149,7 @@ function BUILD_WNP(T) {
     };
     WNP.prototype.updatePauseButton = function() {
         var button = this.wnpWindow.document.getElementById('WNP_C_NICO_PAUSE');
-        if (this.wnpCore.isPausing || !this.wnpCore.isPlaying) {
+        if (this.wnpCore.current.isPausing || !this.wnpCore.current.isPlaying) {
             button.innerHTML = '<img src="' + Consts.WNP_IMAGE_PLAY + '">';
         }
         else {
@@ -3154,12 +3201,12 @@ function BUILD_WNP(T) {
             this.preloads.remove(videoinfo.id);
             this.wnpCore.style = oldCore.style;
             this.wnpCore.seekTo(0);
-            this.wnpCore.setCommentOff(oldCore.isCommentOff);
-            this.wnpCore.setMute(oldCore.isMute);
-            //this.wnpCore.setRepeat(oldCore.isRepeat);
-            //this.wnpCore.volumeTo(oldCore.volume());
+            this.wnpCore.setCommentOff(oldCore.current.isCommentOff);
+            this.wnpCore.setMute(oldCore.current.isMute);
+            //this.wnpCore.setRepeat(oldCore.current.isRepeat);
+            this.wnpCore.volumeTo(oldCore.volume());
             this.wnpCore.observeInterval = this.prefs.observe_interval;
-            this.wnpCore.errorWhenDeleted = this.prefs.skip_deleted_video;
+            this.wnpCore.current.errorWhenDeleted = this.prefs.skip_deleted_video;
             oldCore.pause();
             oldCore.hide();
             this.wnpWindow.setTimeout(function() { // for Opera 10 freeze.
@@ -3171,7 +3218,7 @@ function BUILD_WNP(T) {
         this.wnpWindow.setTimeout(function() {
             if (preloaded) {
                 self.wnpCore.resume();
-                if (!self.wnpCore.isLoading) { // already loaded.
+                if (!self.wnpCore.current.isLoading) { // already loaded.
                     self.wnpCore.onload();
                     self.wnpCore.onstart();
                 }
@@ -3199,13 +3246,13 @@ function BUILD_WNP(T) {
             }, self.prefs.video_timeout * 1000);
             // show actual title.
             if (!title || title == videoinfo.id) {
-                title = self.wnpCore.videoinfo.title;
+                title = self.wnpCore.current.videoinfo.title;
                 self.wnpWindow.document.title = title + ' - ' + Consts.WNP_TITLE;
                 self.showStatus(title, 5);
             }
             // update title and thumbnail image.
-            var video_id = self.wnpCore.videoinfo.id;
-            var thumbnail = self.wnpCore.videoinfo.thumbnail;
+            var video_id = self.wnpCore.current.videoinfo.id;
+            var thumbnail = self.wnpCore.current.videoinfo.thumbnail;
             var elements = self.wnpWindow.document.getElementsByName(video_id);
             for (var i = 0; i < elements.length; i++) {
                 var el = elements[i];
@@ -3265,7 +3312,7 @@ function BUILD_WNP(T) {
         this.wnpCore.onback = (function() {
             var backCount = 0;
             return function() {
-                if (self.wnpCore.isRepeat) {
+                if (self.wnpCore.current.isRepeat) {
                     backCount = 0;
                     return;
                 }
@@ -3378,7 +3425,7 @@ function BUILD_WNP(T) {
         var wnpCore = new WNPCore(this.wnpWindow.document);
         preloads.add(videoinfo.id, wnpCore);
         wnpCore.observeInterval = this.prefs.observe_interval;
-        wnpCore.errorWhenDeleted = this.prefs.skip_deleted_video;
+        wnpCore.current.errorWhenDeleted = this.prefs.skip_deleted_video;
         wnpCore.hide();
         wnpCore.onerror = wnpCore.onfatal = function() {
             wnpCore.detach();
@@ -3406,13 +3453,12 @@ function BUILD_WNP(T) {
     };
     WNP.prototype.layoutToggle = function() {
         var nextStyle;
-        switch (this.wnpCore.style) {
-        case WNPCore.STYLE_FILL:    nextStyle = WNPCore.STYLE_RESTORE;   break;
-        case WNPCore.STYLE_RESTORE: nextStyle = WNPCore.STYLE_ALTERNATE; break;
-        default:                    nextStyle = WNPCore.STYLE_FILL;      break;
+        switch (this.wnpCore.current.style) {
+            case WNPCore.STYLE_FILL:    nextStyle = WNPCore.STYLE_RESTORE;   break;
+            case WNPCore.STYLE_RESTORE: nextStyle = WNPCore.STYLE_ALTERNATE; break;
+            default:                    nextStyle = WNPCore.STYLE_FILL;      break;
         }
-        this.wnpCore.style = nextStyle;
-        this.wnpCore.layout();
+        this.wnpCore.setStyle(nextStyle);
     };
     WNP.prototype.clearStatus = function() {
         var statusBar = this.wnpWindow.document.getElementById('WNP_STATUS_BAR');
@@ -3448,7 +3494,7 @@ function BUILD_WNP(T) {
     };
     WNP.prototype.updateAlternativeView = function(info) {
         if (!this.alternativeView) return;
-        var videoinfo = info || this.wnpCore.videoinfo;
+        var videoinfo = info || this.wnpCore.current.videoinfo;
         if (!videoinfo) return;
         var thumb_url = videoinfo.thumbnail || 'about:blank';
         var title    = escapeHTML(videoinfo.title || videoinfo.id || '', this.wnpWindow.document);
@@ -3605,8 +3651,7 @@ function BUILD_WNP(T) {
                 var style = addStyle(simple_style_str, this.wnpWindow.document);
                 this._simplePlaylistStyle = style;
             }
-            this._simplePlaylistStyle.disabled = !this.prefs[key];
-            if (this._simplePlaylistStyle.sheet) this._simplePlaylistStyle.sheet.disabled = !this.prefs[key]; // webkit.
+            setStyleEnabled(this._simplePlaylistStyle, this.prefs[key]);
             this.setPreferenceUI(key, this.prefs[key]);
             if (save) this.storePreference(key, this.prefs[key] ? '1' : '0');
         }
@@ -3626,7 +3671,7 @@ function BUILD_WNP(T) {
         if (key in prefs && prefs[key] != null) {
             this.prefs[key] = (prefs[key] == true);
             this.setPreferenceUI(key, this.prefs[key]);
-            this.wnpCore.errorWhenDeleted = this.prefs[key];
+            this.wnpCore.current.errorWhenDeleted = this.prefs[key];
             if (save) this.storePreference(key, this.prefs[key] ? '1' : '0');
         }
         key = 'use_offtimer';
