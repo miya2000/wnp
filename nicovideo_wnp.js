@@ -1847,7 +1847,7 @@ function BUILD_FUNC(T) {
             return (e.keyCode || e.charCode) == keyCode && e.which == which;
         }
         else {
-            return shortcut.ch == String.fromCharCode(e.which).toLowerCase();
+            return shortcut.ch == String.fromCharCode(e.which || e.keyCode).toLowerCase();
         }
     };
     T.KeyBind = KeyBind;
