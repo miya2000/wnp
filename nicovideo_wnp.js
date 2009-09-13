@@ -1730,7 +1730,7 @@ function BUILD_FUNC(T) {
     };
     KeyBind.prototype.start = function() {
         var self = this;
-        this.target.addEventListener(this.eventType, this._listener = function(e) {
+        $e(this.target).addEventListener(this.eventType, this._listener = function(e) {
             if (!self.checkValidEvent(e)) return;
             for (var i = 0, binds = self.binds, len = binds.length; i < len; i++) {
                 var shortcut = binds[i];
