@@ -175,14 +175,51 @@
     WNP.Colors = Colors;
     
     var Lang = {
+        COMMAND_PlayStop  : '\u52D5\u753B\u306E\u518D\u751F\u3092\u958B\u59CB\uFF0F\u7D42\u4E86\u3057\u307E\u3059\u3002',
+        COMMAND_PlayPause : '\u52D5\u753B\u306E\u518D\u751F\u3092\u4E00\u6642\u505C\u6B62\uFF0F\u518D\u958B\u3057\u307E\u3059\u3002',
+        COMMAND_PlayPrev  : '\u4E00\u3064\u524D\u306E\u52D5\u753B\u3092\u518D\u751F\u3057\u307E\u3059\u3002',
+        COMMAND_PlayNext  : '\u4E00\u3064\u5F8C\u306E\u52D5\u753B\u3092\u518D\u751F\u3057\u307E\u3059\u3002',
+        CLICK_Volume             : '\u30AF\u30EA\u30C3\u30AF\u3057\u305F\u4F4D\u7F6E\u306B\u97F3\u91CF\u3092\u8A2D\u5B9A\u3057\u307E\u3059\u3002',
+        COMMAND_VolumeUp         : '\u97F3\u91CF\u3092\u4E0A\u3052\u307E\u3059\u3002',
+        COMMAND_VolumeUp_Plus    : '\u97F3\u91CF\u3092\u5927\u304D\u304F\u4E0A\u3052\u307E\u3059\u3002',
+        COMMAND_VolumeDown       : '\u97F3\u91CF\u3092\u4E0B\u3052\u307E\u3059\u3002',
+        COMMAND_VolumeDown_Minus : '\u97F3\u91CF\u3092\u5927\u304D\u304F\u4E0B\u3052\u307E\u3059\u3002',
+        CLICK_Seek                      : '\u30AF\u30EA\u30C3\u30AF\u3057\u305F\u7B87\u6240\u306B\u518D\u751F\u4F4D\u7F6E\u3092\u79FB\u52D5\u3057\u307E\u3059\u3002',
+        COMMAND_SeekForward             : '\u518D\u751F\u4F4D\u7F6E\u3092\u524D\u65B9\u306B\u79FB\u52D5\u3057\u307E\u3059\u3002',
+        COMMAND_SeekForward_Plus        : '\u518D\u751F\u4F4D\u7F6E\u3092\u524D\u65B9\u306B\u5927\u304D\u304F\u79FB\u52D5\u3057\u307E\u3059\u3002',
+        COMMAND_SeekBackward            : '\u518D\u751F\u4F4D\u7F6E\u3092\u5F8C\u65B9\u306B\u79FB\u52D5\u3057\u307E\u3059\u3002',
+        COMMAND_SeekBackward_Minus      : '\u518D\u751F\u4F4D\u7F6E\u3092\u5F8C\u65B9\u306B\u5927\u304D\u304F\u79FB\u52D5\u3057\u307E\u3059\u3002',
+        COMMAND_SeekBackward_MinusMinus : '\u518D\u751F\u4F4D\u7F6E\u3092\u52D5\u753B\u306E\u5148\u982D\u306B\u79FB\u52D5\u3057\u307E\u3059\u3002',
+        COMMAND_SelectNextItem : '\u4E00\u3064\u5F8C\u306E\u52D5\u753B\u3092\u9078\u629E\u72B6\u614B\u306B\u3057\u307E\u3059\u3002',
+        COMMAND_SelectPrevItem : '\u4E00\u3064\u524D\u306E\u52D5\u753B\u3092\u9078\u629E\u72B6\u614B\u306B\u3057\u307E\u3059\u3002',
+        COMMAND_PlaySelectedItem   : '\u9078\u629E\u3055\u308C\u3066\u3044\u308B\u52D5\u753B\u3092\u518D\u751F\u3057\u307E\u3059\u3002',
+        COMMAND_DeleteSelectedItem : '\u9078\u629E\u3055\u308C\u3066\u3044\u308B\u52D5\u753B\u3092\u524A\u9664\u3057\u307E\u3059\u3002',
+        COMMAND_Menu        : '\u30E1\u30CB\u30E5\u30FC\u306E\u8868\u793A\u3092\u5207\u308A\u66FF\u3048\u307E\u3059\u3002',
+        COMMAND_MenuNext    : '\u6B21\u306E\u30E1\u30CB\u30E5\u30FC\u3092\u8868\u793A\u3057\u307E\u3059\u3002',
+        COMMAND_MenuPrev    : '\u524D\u306E\u30E1\u30CB\u30E5\u30FC\u3092\u8868\u793A\u3057\u307E\u3059\u3002',
+        COMMAND_Playlist    : '\u30D7\u30EC\u30A4\u30EA\u30B9\u30C8\u306E\u8868\u793A\u3092\u5207\u308A\u66FF\u3048\u307E\u3059\u3002',
+        COMMAND_History     : '\u8996\u8074\u5C65\u6B74\u306E\u8868\u793A\u3092\u5207\u308A\u66FF\u3048\u307E\u3059\u3002',
+        COMMAND_Preference  : '\u8A2D\u5B9A\u753B\u9762\u306E\u8868\u793A\u3092\u5207\u308A\u66FF\u3048\u307E\u3059\u3002',
+        COMMAND_Comment     : '\u30B3\u30E1\u30F3\u30C8\u306E\u8868\u793A\u3092\u5207\u308A\u66FF\u3048\u307E\u3059\u3002',
+        COMMAND_Loop        : '\u30D7\u30EC\u30A4\u30EA\u30B9\u30C8\u3092\u7E70\u308A\u8FD4\u3057\u518D\u751F\u3059\u308B\u304B\u3069\u3046\u304B\u3092\u5207\u308A\u66FF\u3048\u307E\u3059\u3002',
+        COMMAND_Repeat      : '\u52D5\u753B\u3092\u7E70\u308A\u8FD4\u3057\u518D\u751F\u3059\u308B\u304B\u3069\u3046\u304B\u3092\u5207\u308A\u66FF\u3048\u307E\u3059\u3002',
+        COMMAND_Mute        : '\u52D5\u753B\u306E\u97F3\u58F0\u3092\u6D88\u3059\u304B\u3069\u3046\u304B\u3092\u5207\u308A\u66FF\u3048\u307E\u3059\u3002',
+        COMMAND_Open        : '\u5165\u529B\u3055\u308C\u305F\u52D5\u753B\u3092\u958B\u304D\u307E\u3059\u3002\u52D5\u753BID\u3084\u52D5\u753B\u306EURL\u3092\u5165\u529B\u3067\u304D\u307E\u3059\u3002',
+        COMMAND_View        : '\u30D7\u30EC\u30A4\u30E4\u30FC\u306E\u8868\u793A\u3092\u5207\u308A\u66FF\u3048\u307E\u3059\u3002',
+        COMMAND_NicoControl : '\u30CB\u30B3\u30CB\u30B3\u52D5\u753B\u30D7\u30EC\u30A4\u30E4\u30FC\u672C\u4F53\u306E\u30B3\u30F3\u30C8\u30ED\u30FC\u30EB\u306E\u8868\u793A\u3092\u5207\u308A\u66FF\u3048\u307E\u3059\u3002',
+        COMMAND_AlwaysOnTop : '\u5E38\u306B\u5168\u753B\u9762\u8868\u793A\u3057\u307E\u3059\u3002\uFF08\u7C21\u6613\u5B9F\u88C5\u3067\u3059\uFF09',
         PREF_SIMPLE_PLAYLIST_VIEW : '\u30D7\u30EC\u30A4\u30EA\u30B9\u30C8\u3092\u30B7\u30F3\u30D7\u30EB\u8868\u793A\u306B\u3059\u308B',
+        DESC_SIMPLE_PLAYLIST_VIEW : '\u30D7\u30EC\u30A4\u30EA\u30B9\u30C8\u3092\u30B7\u30F3\u30D7\u30EB\u8868\u793A\u306B\u3057\u307E\u3059\u3002',
         PREF_REMOVE_ON_FINISH : '\u518D\u751F\u304C\u7D42\u308F\u3063\u305F\u3089\u30D7\u30EC\u30A4\u30EA\u30B9\u30C8\u304B\u3089\u524A\u9664\u3059\u308B',
+        DESC_REMOVE_ON_FINISH : '\u518D\u751F\u304C\u7D42\u308F\u3063\u305F\u3089\u30D7\u30EC\u30A4\u30EA\u30B9\u30C8\u304B\u3089\u524A\u9664\u3057\u307E\u3059\u3002',
         PREF_USE_HISTORY : '\u5C65\u6B74\u3092\u4F7F\u7528\u3059\u308B',
+        DESC_USE_HISTORY : '\u5C65\u6B74\u3092\u6709\u52B9\u306B\u3057\u307E\u3059\u3002',
         PREF_SKIP_DELETED_VIDEO : '\u524A\u9664\u3055\u308C\u305F\u52D5\u753B\u3092\u30B9\u30AD\u30C3\u30D7\u3059\u308B',
         PREF_USE_OFFTIMER : '\u30AA\u30D5\u30BF\u30A4\u30DE\u30FC\u3092\u4F7F\u7528\u3059\u308B',
         PREF_MINUTE : '\u5206',
         PREF_USE_LOOP_BREAK : '\u30EB\u30FC\u30D7\u3059\u308B\u52D5\u753B\u3092\u6307\u5B9A\u56DE\u6570\u3067\u6B62\u3081\u308B',
         PREF_COUNT : '\u56DE',
+        PREF_DEFAULT : '\u30C7\u30D5\u30A9\u30EB\u30C8\u306E\u8A2D\u5B9A\u306B\u623B\u3057\u307E\u3059\u3002',
         PLEASE_LOGIN : '\u30ED\u30B0\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044',
         OVER_ACCESS : '\u77ED\u6642\u9593\u3067\u306E\u9023\u7D9A\u30A2\u30AF\u30BB\u30B9',
         MISSING     : '\u304A\u63A2\u3057\u306E\u52D5\u753B\u306F\u518D\u751F\u3067\u304D\u307E\u305B\u3093',
@@ -537,33 +574,33 @@
         '<div class="wnp_player" id="WNP_PLAYER">',
         '    <div class="wnp_header" id="WNP_HEADER">',
         '        <div class="header_left">',
-        '            <button class="control" id="WNP_C_SCREEN" title="Full or Restore or Alternative View(V)">\u25A0</button>',
-        '            <button class="control" id="WNP_C_ALWAYS_ON_TOP" title="Always On Top">\u22BF</button>',
+        '            <button class="control" id="WNP_C_SCREEN" title="' + Lang.COMMAND_View + '">\u25A0</button>',
+        '            <button class="control" id="WNP_C_ALWAYS_ON_TOP" title="' + Lang.COMMAND_AlwaysOnTop + '">\u22BF</button>',
         '        </div>',
         '        <div class="header_right">',
-        '            <a class="control" id="WNP_C_PREV" title="Prev(PageUp)" href="about:blank">&lt;</a>',
-        '            <button class="control" id="WNP_C_PLAY" title="Play or Stop">\u266A</button>',
-        '            <a class="control" id="WNP_C_NEXT" title="Next(PageDown)" href="about:blank">&gt;</a>',
-        '            <button class="control" id="WNP_C_LOOP" title="Playlist Loop on/off(L)">\u221E</button>',
-        '            <a class="control" id="WNP_C_PLAYLIST_URI" title="Save" href="about:blank"><img class="button" src="' + Consts.WNP_IMAGE_SAVE + '" alt=""></a>',
-        '            <button class="control default_button" id="WNP_C_PLAYLIST" title="Show or Hide Playlist(N)">\u25BD</button>',
-        '            <button class="control" id="WNP_C_HISTORY" title="Show or Hide History(H)">\u25BC</button>',
-        '            <button class="control" id="WNP_C_PREFERENCE" title="Show or Hide Preference(P)"><img class="button" src="' + Consts.WNP_IMAGE_PREF + '" alt=""></button>',
+        '            <a class="control" id="WNP_C_PREV" title="' + Lang.COMMAND_PlayPrev + '" href="about:blank">&lt;</a>',
+        '            <button class="control" id="WNP_C_PLAY" title="' + Lang.COMMAND_PlayStop + '">\u266A</button>',
+        '            <a class="control" id="WNP_C_NEXT" title="' + Lang.COMMAND_PlayNext + '" href="about:blank">&gt;</a>',
+        '            <button class="control" id="WNP_C_LOOP" title="' + Lang.COMMAND_Loop + '">\u221E</button>',
+        '            <a class="control" id="WNP_C_PLAYLIST_URI" title="' + Lang.SAVE_PLAYLIST_USAGE + '" href="about:blank"><img class="button" src="' + Consts.WNP_IMAGE_SAVE + '" alt=""></a>',
+        '            <button class="control default_button" id="WNP_C_PLAYLIST" title="' + Lang.COMMAND_Playlist + '">\u25BD</button>',
+        '            <button class="control" id="WNP_C_HISTORY" title="' + Lang.COMMAND_History + '">\u25BC</button>',
+        '            <button class="control" id="WNP_C_PREFERENCE" title="' + Lang.COMMAND_Preference + '"><img class="button" src="' + Consts.WNP_IMAGE_PREF + '" alt=""></button>',
         '        </div>',
         '    </div>',
         '    <div class="wnp_view" id="WNP_VIEW"></div>',
         '    <div class="wnp_footer" id="WNP_FOOTER">',
-        '        <button class="control default_button" title="Show Nicovideo Player Controls" id="WNP_C_NICO_MENU">\u25B3</button>',
+        '        <button class="control default_button" title="' + Lang.COMMAND_NicoControl + '" id="WNP_C_NICO_MENU">\u25B3</button>',
         '        <span class="wnp_status_bar" id="WNP_STATUS_BAR"></span>',
         '        <div class="wnp_control_panel" id="WNP_CONTROL_PANEL">',
-        '            <span class="wnp_button_container"><button class="control" title="Open(W)" id="WNP_C_NICO_OPEN"><img src="' + Consts.WNP_IMAGE_OPEN + '"></button></span>',
-        '            <span class="wnp_button_container"><button class="control" title="Play/Pause(Space)" id="WNP_C_NICO_PAUSE"><img src="' + Consts.WNP_IMAGE_PLAY + '"></button></span>',
-        '            <div class="wnp_seekbar" id="WNP_C_NICO_SEEKBAR" title="Seek(Left/Right)"><div><div></div></div></div>',
+        '            <span class="wnp_button_container"><button class="control" title="' + Lang.COMMAND_Open + '" id="WNP_C_NICO_OPEN"><img src="' + Consts.WNP_IMAGE_OPEN + '"></button></span>',
+        '            <span class="wnp_button_container"><button class="control" title="' + Lang.COMMAND_PlayPause + '" id="WNP_C_NICO_PAUSE"><img src="' + Consts.WNP_IMAGE_PLAY + '"></button></span>',
+        '            <div class="wnp_seekbar" id="WNP_C_NICO_SEEKBAR" title="' + Lang.CLICK_Seek + '"><div><div></div></div></div>',
         '            <div class="wnp_etcbar">',
-        '                <span class="wnp_button_container"><button class="control" id="WNP_C_NICO_MUTE" title="Mute On/Off(M)">\u03BC</button></span>',
-        '                <div class="wnp_volumebar" id="WNP_C_NICO_VOLUMEBAR" title="Volume(Up/Down)"><div><div></div></div></div>',
-        '                <button class="control" id="WNP_C_NICO_COMM" title="Comment On/Off(C)">\u24D2</button>',
-        '                <button class="control" id="WNP_C_NICO_REPEAT" title="Repeat On/Off(R)">\u03C3</button>',
+        '                <span class="wnp_button_container"><button class="control" id="WNP_C_NICO_MUTE" title="' + Lang.COMMAND_Mute + '">\u03BC</button></span>',
+        '                <div class="wnp_volumebar" id="WNP_C_NICO_VOLUMEBAR" title="' + Lang.CLICK_Volume + '"><div><div></div></div></div>',
+        '                <button class="control" id="WNP_C_NICO_COMM" title="' + Lang.COMMAND_Comment + '">\u24D2</button>',
+        '                <button class="control" id="WNP_C_NICO_REPEAT" title="' + Lang.COMMAND_Repeat + '">\u03C3</button>',
         '            </div>',
         '        </div>',
         '    </div>',
@@ -574,15 +611,15 @@
         '                <p class="wnp_menu_header">playlist</p>',
         '                <ul class="wnp_playlist_items" id="WNP_PLAYLIST_ITEMS"></ul>',
         '                <p class="wnp_menu_footer">',
-        '                    <input id="WNP_C_PLAYLIST_STYLE" type="checkbox"><label for="WNP_C_PLAYLIST_STYLE">simple</label>',
-        '                    <input id="WNP_C_REMOVE_ON_FINISH" type="checkbox"><label for="WNP_C_REMOVE_ON_FINISH">remove on finish</label>',
+        '                    <input id="WNP_C_PLAYLIST_STYLE" type="checkbox"><label for="WNP_C_PLAYLIST_STYLE" title="' + Lang.DESC_SIMPLE_PLAYLIST_VIEW + '">simple</label>',
+        '                    <input id="WNP_C_REMOVE_ON_FINISH" type="checkbox"><label for="WNP_C_REMOVE_ON_FINISH" title="' + Lang.DESC_REMOVE_ON_FINISH + '">remove on finish</label>',
         '                </p>',
         '            </div>',
         '            <div class="wnp_menu_content" id="WNP_MENU_HISTORY">',
         '                <p class="wnp_menu_header wnp_history_header">history</p>',
         '                <ul class="wnp_playlist_items" id="WNP_HISTORY_ITEMS"></ul>',
         '                <p class="wnp_menu_footer">',
-        '                    <input id="WNP_C_USE_HISTORY" type="checkbox"><label for="WNP_C_USE_HISTORY">use history</label>',
+        '                    <input id="WNP_C_USE_HISTORY" type="checkbox"><label for="WNP_C_USE_HISTORY" title="' + Lang.DESC_USE_HISTORY + '">use history</label>',
         '                </p>',
         '            </div>',
         '            <div class="wnp_menu_content" id="WNP_MENU_PREFERENCE">',
@@ -598,7 +635,7 @@
         '                </ul>',
         '                </div>',
         '                <p class="wnp_menu_footer">',
-        '                    <input id="WNP_C_SET_DEFAULT" type="button" value="default">',
+        '                    <input id="WNP_C_SET_DEFAULT" type="button" value="default" title="' + Lang.PREF_DEFAULT + '">',
         '                </p>',
         '            </div>',
         '        </div>',
@@ -2705,37 +2742,37 @@ function BUILD_WNP(T) {
         
         var platform = new Platform();
         // bind commands.
-        platform.bindCommand({ name: 'PlayStop',  fn: function() { self.playToggle(); }, desc: Lang.COMMAND_NEXT_ENTRY });
-        platform.bindCommand({ name: 'PlayPause', fn: function() { self.pauseToggle(); }, desc: Lang.COMMAND_NEXT_ENTRY });
-        platform.bindCommand({ name: 'PlayPrev',  fn: function() { self.schedulePrev(); }, desc: Lang.COMMAND_NEXT_ENTRY });
-        platform.bindCommand({ name: 'PlayNext',  fn: function() { self.scheduleNext(); }, desc: Lang.COMMAND_NEXT_ENTRY });
-        platform.bindCommand({ name: 'VolumeUp',     fn: function() { self.volume(  5); }, desc: Lang.COMMAND_NEXT_ENTRY });
-        platform.bindCommand({ name: 'VolumeUp+',    fn: function() { self.volume( 20); }, desc: Lang.COMMAND_NEXT_ENTRY });
-        platform.bindCommand({ name: 'VolumeDown',   fn: function() { self.volume( -5); }, desc: Lang.COMMAND_NEXT_ENTRY });
-        platform.bindCommand({ name: 'VolumeDown-',  fn: function() { self.volume(-20); }, desc: Lang.COMMAND_NEXT_ENTRY });
-        platform.bindCommand({ name: 'SeekForward',    fn: function() { self.seek( 15); }, desc: Lang.COMMAND_NEXT_ENTRY });
-        platform.bindCommand({ name: 'SeekForward+',   fn: function() { self.seek( 60); }, desc: Lang.COMMAND_NEXT_ENTRY });
-        platform.bindCommand({ name: 'SeekBackward',   fn: function() { self.seek(-15); }, desc: Lang.COMMAND_NEXT_ENTRY });
-        platform.bindCommand({ name: 'SeekBackward-',  fn: function() { self.seek(-65); }, desc: Lang.COMMAND_NEXT_ENTRY });
-        platform.bindCommand({ name: 'SeekBackward--', fn: function() { self.seek(Number.NEGATIVE_INFINITY); }, desc: Lang.COMMAND_NEXT_ENTRY });
-        platform.bindCommand({ name: 'SelectNextItem',     fn: function() { self.selectNextItem(); }, desc: Lang.COMMAND_NEXT_ENTRY });
-        platform.bindCommand({ name: 'SelectPrevItem',     fn: function() { self.selectPrevItem(); }, desc: Lang.COMMAND_PREV_ENTRY });
-        platform.bindCommand({ name: 'PlaySelectedItem',   fn: function() { self.playSelectedItem(); }, desc: Lang.COMMAND_PREV_ENTRY });
-        platform.bindCommand({ name: 'DeleteSelectedItem', fn: function() { self.deleteSelectedItem(); }, desc: Lang.COMMAND_PREV_ENTRY });
-        platform.bindCommand({ name: 'Menu',       fn: function() { self.menuToggle(); }, desc: Lang.COMMAND_NEXT_ENTRY });
-        platform.bindCommand({ name: 'MenuNext',   fn: function() { self.scrollMenuItem(self.currentMenuIndex + 1); }, desc: Lang.COMMAND_NEXT_ENTRY });
-        platform.bindCommand({ name: 'MenuPrev',   fn: function() { self.scrollMenuItem(self.currentMenuIndex - 1); }, desc: Lang.COMMAND_PREV_ENTRY });
-        platform.bindCommand({ name: 'Playlist',   fn: function() { self.playlistToggle(); }, desc: Lang.COMMAND_PREV_ENTRY });
-        platform.bindCommand({ name: 'History',    fn: function() { self.historyToggle(); }, desc: Lang.COMMAND_PREV_ENTRY });
-        platform.bindCommand({ name: 'Preference', fn: function() { self.preferenceToggle(); }, desc: Lang.COMMAND_PREV_ENTRY });
-        platform.bindCommand({ name: 'Comment', fn: function() { self.commentOnOff(); }, desc: Lang.COMMAND_PREV_ENTRY });
-        platform.bindCommand({ name: 'Loop',    fn: function() { self.loopOnOff(); }, desc: Lang.COMMAND_PREV_ENTRY });
-        platform.bindCommand({ name: 'Repeat',  fn: function() { self.repeatOnOff(); }, desc: Lang.COMMAND_PREV_ENTRY });
-        platform.bindCommand({ name: 'Mute',    fn: function() { self.muteOnOff(); }, desc: Lang.COMMAND_PREV_ENTRY });
-        platform.bindCommand({ name: 'Open',    fn: function() { self.openPrompt(); }, desc: Lang.COMMAND_PREV_ENTRY });
-        platform.bindCommand({ name: 'View',    fn: function() { self.layoutToggle(); }, desc: Lang.COMMAND_PREV_ENTRY });
-        platform.bindCommand({ name: 'NicoControl', fn: function() { self.wnpCore.setControlShowing(!self.wnpCore.current.isControlShowing); }, desc: Lang.COMMAND_PREV_ENTRY });
-        platform.bindCommand({ name: 'AlwaysOnTop', fn: function() { self.applyPreferences({ always_on_top: !self.prefs.always_on_top }); }, desc: Lang.COMMAND_PREV_ENTRY });
+        platform.bindCommand({ name: 'PlayStop',  fn: function() { self.playToggle(); }, desc: Lang.COMMAND_PlayStop });
+        platform.bindCommand({ name: 'PlayPause', fn: function() { self.pauseToggle(); }, desc: Lang.COMMAND_PlayPause });
+        platform.bindCommand({ name: 'PlayPrev',  fn: function() { self.schedulePrev(); }, desc: Lang.COMMAND_PlayPrev });
+        platform.bindCommand({ name: 'PlayNext',  fn: function() { self.scheduleNext(); }, desc: Lang.COMMAND_PlayNext });
+        platform.bindCommand({ name: 'VolumeUp',     fn: function() { self.volume(  5); }, desc: Lang.COMMAND_VolumeUp });
+        platform.bindCommand({ name: 'VolumeUp+',    fn: function() { self.volume( 20); }, desc: Lang.COMMAND_VolumeUp_Plus });
+        platform.bindCommand({ name: 'VolumeDown',   fn: function() { self.volume( -5); }, desc: Lang.COMMAND_VolumeDown });
+        platform.bindCommand({ name: 'VolumeDown-',  fn: function() { self.volume(-20); }, desc: Lang.COMMAND_VolumeDown_Minus });
+        platform.bindCommand({ name: 'SeekForward',    fn: function() { self.seek( 15); }, desc: Lang.COMMAND_SeekForward });
+        platform.bindCommand({ name: 'SeekForward+',   fn: function() { self.seek( 60); }, desc: Lang.COMMAND_SeekForward_Plus });
+        platform.bindCommand({ name: 'SeekBackward',   fn: function() { self.seek(-15); }, desc: Lang.COMMAND_SeekBackward });
+        platform.bindCommand({ name: 'SeekBackward-',  fn: function() { self.seek(-65); }, desc: Lang.COMMAND_SeekBackward_Minus });
+        platform.bindCommand({ name: 'SeekBackward--', fn: function() { self.seek(Number.NEGATIVE_INFINITY); }, desc: Lang.COMMAND_SeekBackward_MinusMinus });
+        platform.bindCommand({ name: 'SelectNextItem',     fn: function() { self.selectNextItem(); }, desc: Lang.COMMAND_SelectNextItem });
+        platform.bindCommand({ name: 'SelectPrevItem',     fn: function() { self.selectPrevItem(); }, desc: Lang.COMMAND_SelectPrevItem });
+        platform.bindCommand({ name: 'PlaySelectedItem',   fn: function() { self.playSelectedItem(); }, desc: Lang.COMMAND_PlaySelectedItem });
+        platform.bindCommand({ name: 'DeleteSelectedItem', fn: function() { self.deleteSelectedItem(); }, desc: Lang.COMMAND_DeleteSelectedItem });
+        platform.bindCommand({ name: 'Menu',       fn: function() { self.menuToggle(); }, desc: Lang.COMMAND_Menu });
+        platform.bindCommand({ name: 'MenuNext',   fn: function() { self.scrollMenuItem(self.currentMenuIndex + 1); }, desc: Lang.COMMAND_MenuNext });
+        platform.bindCommand({ name: 'MenuPrev',   fn: function() { self.scrollMenuItem(self.currentMenuIndex - 1); }, desc: Lang.COMMAND_MenuPrev });
+        platform.bindCommand({ name: 'Playlist',   fn: function() { self.playlistToggle(); }, desc: Lang.COMMAND_Playlist });
+        platform.bindCommand({ name: 'History',    fn: function() { self.historyToggle(); }, desc: Lang.COMMAND_History });
+        platform.bindCommand({ name: 'Preference', fn: function() { self.preferenceToggle(); }, desc: Lang.COMMAND_Preference });
+        platform.bindCommand({ name: 'Comment', fn: function() { self.commentOnOff(); }, desc: Lang.COMMAND_Comment });
+        platform.bindCommand({ name: 'Loop',    fn: function() { self.loopOnOff(); }, desc: Lang.COMMAND_Loop });
+        platform.bindCommand({ name: 'Repeat',  fn: function() { self.repeatOnOff(); }, desc: Lang.COMMAND_Repeat });
+        platform.bindCommand({ name: 'Mute',    fn: function() { self.muteOnOff(); }, desc: Lang.COMMAND_Mute });
+        platform.bindCommand({ name: 'Open',    fn: function() { self.openPrompt(); }, desc: Lang.COMMAND_Open });
+        platform.bindCommand({ name: 'View',    fn: function() { self.layoutToggle(); }, desc: Lang.COMMAND_View });
+        platform.bindCommand({ name: 'NicoControl', fn: function() { self.wnpCore.setControlShowing(!self.wnpCore.current.isControlShowing); }, desc: Lang.COMMAND_NicoControl });
+        platform.bindCommand({ name: 'AlwaysOnTop', fn: function() { self.applyPreferences({ always_on_top: !self.prefs.always_on_top }); }, desc: Lang.COMMAND_AlwaysOnTop });
         // bind default shortcut.
         var shortcutList = this.getDefaultKeybordShortcut();
         for (var i = 0; i < shortcutList.length; i++) {
