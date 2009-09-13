@@ -2969,7 +2969,7 @@ function BUILD_WNP(T) {
         };
     };
     WNP.prototype.openPrompt = function() {
-        var text = this.wnpWindow.prompt(Lang.PLEASE_INPUT_VIDEOID_OR_URL);
+        var text = this.wnpWindow.prompt(Lang.PLEASE_INPUT_VIDEOID_OR_URL, '');
         if (text) {
             var playlist = createPlayInfoFromText(text);
             if (playlist.items.length > 0) {
