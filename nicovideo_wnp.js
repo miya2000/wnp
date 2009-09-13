@@ -37,7 +37,7 @@
     var WNP = {};
     
     // ==== Prefs ==== //
-    WNP.Prefs = {
+    WNP.PREFS = {
         /*
         observe_interval : 500, // (ms)  observe interval.
         page_timeout     : 80,  // (sec) page load timeout.
@@ -57,6 +57,40 @@
         */
     };
     
+    // ==== shortcut keys ==== //
+    WNP.SHOPRTCUT = [
+        /*
+        { command: 'PlayPause',      key: 'Space' },
+        { command: 'PlayPrev',       key: 'PageUp' },
+        { command: 'PlayNext',       key: 'PageDown' },
+        { command: 'VolumeUp',       key: 'Up' },
+        { command: 'VolumeUp+',      key: 'Up Shift' },
+        { command: 'VolumeDown',     key: 'Down' },
+        { command: 'VolumeDown-',    key: 'Down Shift' },
+        { command: 'SeekForward',    key: 'Right' },
+        { command: 'SeekForward+',   key: 'Right Shift' },
+        { command: 'SeekBackward',   key: 'Left' },
+        { command: 'SeekBackward-',  key: 'Left Shift' },
+        { command: 'SeekBackward--', key: 'Left Ctrl' },
+        { command: 'SelectNextItem',     key: 'j' },
+        { command: 'SelectNextItem',     key: 'Enter' },
+        { command: 'SelectPrevItem',     key: 'k' },
+        { command: 'PlaySelectedItem',   key: 'o' },
+        { command: 'DeleteSelectedItem', key: 'DEL' },
+        { command: 'MenuNext',       key: 's' },
+        { command: 'MenuPrev',       key: 'a' },
+        { command: 'Playlist',       key: 'n' },
+        { command: 'History',        key: 'h' },
+        { command: 'Preference',     key: 'p' },
+        { command: 'Comment',        key: 'c' },
+        { command: 'Loop',           key: 'l' },
+        { command: 'Repeat',         key: 'r' },
+        { command: 'Mute',           key: 'm' },
+        { command: 'Open',           key: 'w' },
+        { command: 'View',           key: 'v' }
+        */
+    ];
+    
     // ==== const ==== //
     var Consts = {
         WNP_TITLE : 'WNP',
@@ -66,6 +100,7 @@
         WNP_IMAGE_PAUSE : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAPCAYAAADkmO9VAAAAe0lEQVQ4y2NgoCL4%2F%2F8%2FfgWhoaFuxIgRYyDLqlWrooAKfoJoEB%2BHGCOxBnIAJTf9h4BNID4OsYEzkP3fv38b%2F0HARhAfhxjDqJeHsJc5gN7aAdIJomEGYhEj2stsQMl2UGCBaBAfhxjRLgQDYBZrICBGmoG4NOISAxkIAIbuKTCbOZywAAAAAElFTkSuQmCC',
         WNP_IMAGE_EMPTY : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQI12P4DwQACfsD%2FWMmxY8AAAAASUVORK5CYII%3D',
         WNP_IMAGE_PREF  : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAOUlEQVQoz2NgoCbg4uIC0x9%2B%2FP%2BPjInSTHVNeA3Bp4lojTCFRDkbXSNR%2Fh1YTSQHP20jm%2Bg4ohYAAAU6%2FYWVfvgIAAAAAElFTkSuQmCC',
+        WNP_IMAGE_OPEN  : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAPCAYAAADkmO9VAAABKklEQVQ4y2NgoCL4%2F%2F8%2FYUWcnJwywcHBeQoKCmYUG8jFxcU3c%2BbMJUCF%2Fy9cuHBFTk5OnxIDuZcuXTrlPxI4e%2FbsQVkgIMdApoULF84BKvjx79%2B%2F%2F0D87%2B%2Ffv%2F9Ahp45c2YLIyOjPCkGMl%2B5cmUe0ICfQPwfZiDITBAbCH7fv3%2F%2FJFCdIkED%2Bfj4GC9evMjw9u3b%2F1jwP2T%2Bu3fvfsrIyOA30NHRkQFoO8ObN2%2BIws3NzYS9DLLV3d2dKEzQyyAXrlq1Kg1o%2B1MofoTEfgxjv3r16jmQvgVSS9CFK1euTANKfAeFPjQS%2FkPZ%2F5DYILwfpJaggSBbQXpA%2BC8omrGwoWZ%2FQHchVgB14WUQBmq8jIN9A0hvR3chVgC0FURpArEWEo3O1gZiJQZ6AAC9TX6jYSwl0gAAAABJRU5ErkJggg%3D%3D',
         WNP_STORAGE_SWF : 'http://github.com/miya2000/wnp/raw/master/storage/wnp.swf',
         WNP_INITIAL_PLAYER_WIDTH  : 610,
         WNP_INITIAL_PLAYER_HEIGHT : 470,
@@ -150,7 +185,9 @@
         PREF_COUNT : '\u56DE',
         PLEASE_LOGIN : '\u30ED\u30B0\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044',
         OVER_ACCESS : '\u77ED\u6642\u9593\u3067\u306E\u9023\u7D9A\u30A2\u30AF\u30BB\u30B9',
-        SAVE_PLAYLIST_USAGE : '\u3053\u306E\u30EA\u30F3\u30AF\u306F\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u30EC\u30C3\u30C8\u3067\u3059\u3002\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u306B\u767B\u9332\u3059\u308B\u3053\u3068\u3067\u3053\u306E\u30D7\u30EC\u30A4\u30EA\u30B9\u30C8\u3092\u5FA9\u5143\u3067\u304D\u307E\u3059\u3002\n\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u30EC\u30C3\u30C8\u306F\u30CB\u30B3\u30CB\u30B3\u52D5\u753B(http://www.nicovideo.jp/)\u306E\u30C9\u30E1\u30A4\u30F3\u4E0A\u3067\u5B9F\u884C\u3057\u3066\u304F\u3060\u3055\u3044\u3002'
+        MISSING     : '\u304A\u63A2\u3057\u306E\u52D5\u753B\u306F\u518D\u751F\u3067\u304D\u307E\u305B\u3093',
+        SAVE_PLAYLIST_USAGE : '\u3053\u306E\u30EA\u30F3\u30AF\u306F\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u30EC\u30C3\u30C8\u3067\u3059\u3002\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u306B\u767B\u9332\u3059\u308B\u3053\u3068\u3067\u3053\u306E\u30D7\u30EC\u30A4\u30EA\u30B9\u30C8\u3092\u5FA9\u5143\u3067\u304D\u307E\u3059\u3002\n\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u30EC\u30C3\u30C8\u306F\u30CB\u30B3\u30CB\u30B3\u52D5\u753B(http://www.nicovideo.jp/)\u306E\u30C9\u30E1\u30A4\u30F3\u4E0A\u3067\u5B9F\u884C\u3057\u3066\u304F\u3060\u3055\u3044\u3002',
+        PLEASE_INPUT_VIDEOID_OR_URL : '\u52D5\u753B\u306EID\u0028\u300Csm9\u300D\u306A\u3069\u0029\u3082\u3057\u304F\u306FURL\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044\u3002',
     };
     WNP.Lang = Lang;
     
@@ -519,13 +556,14 @@
         '        <button class="control default_button" title="Show Nicovideo Player Controls" id="WNP_C_NICO_MENU">\u25B3</button>',
         '        <span class="wnp_status_bar" id="WNP_STATUS_BAR"></span>',
         '        <div class="wnp_control_panel" id="WNP_CONTROL_PANEL">',
-        '            <span class="wnp_button_container"><button class="control" title="Pause or Resume(Space)" id="WNP_C_NICO_PAUSE"><img src="' + Consts.WNP_IMAGE_PLAY + '"></button></span>',
+        '            <span class="wnp_button_container"><button class="control" title="Open(W)" id="WNP_C_NICO_OPEN"><img src="' + Consts.WNP_IMAGE_OPEN + '"></button></span>',
+        '            <span class="wnp_button_container"><button class="control" title="Play/Pause(Space)" id="WNP_C_NICO_PAUSE"><img src="' + Consts.WNP_IMAGE_PLAY + '"></button></span>',
         '            <div class="wnp_seekbar" id="WNP_C_NICO_SEEKBAR" title="Seek(Left/Right)"><div><div></div></div></div>',
         '            <div class="wnp_etcbar">',
-        '                <span class="wnp_button_container"><button class="control" id="WNP_C_NICO_MUTE" title="Mute(M)">\u03BC</button></span>',
+        '                <span class="wnp_button_container"><button class="control" id="WNP_C_NICO_MUTE" title="Mute On/Off(M)">\u03BC</button></span>',
         '                <div class="wnp_volumebar" id="WNP_C_NICO_VOLUMEBAR" title="Volume(Up/Down)"><div><div></div></div></div>',
-        '                <button class="control" id="WNP_C_NICO_COMM" title="Comment on/off(C)">\u24D2</button>',
-        '                <button class="control" id="WNP_C_NICO_REPEAT" title="Repeat on/off(R)">\u03C3</button>',
+        '                <button class="control" id="WNP_C_NICO_COMM" title="Comment On/Off(C)">\u24D2</button>',
+        '                <button class="control" id="WNP_C_NICO_REPEAT" title="Repeat On/Off(R)">\u03C3</button>',
         '            </div>',
         '        </div>',
         '    </div>',
@@ -544,7 +582,7 @@
         '                <p class="wnp_menu_header wnp_history_header">history</p>',
         '                <ul class="wnp_playlist_items" id="WNP_HISTORY_ITEMS"></ul>',
         '                <p class="wnp_menu_footer">',
-        '                    <input id="WNP_C_USE_HISTOPRY" type="checkbox"><label for="WNP_C_USE_HISTOPRY">use history</label>',
+        '                    <input id="WNP_C_USE_HISTORY" type="checkbox"><label for="WNP_C_USE_HISTORY">use history</label>',
         '                </p>',
         '            </div>',
         '            <div class="wnp_menu_content" id="WNP_MENU_PREFERENCE">',
@@ -870,7 +908,10 @@ function BUILD_FUNC(T) {
                     image[videoid] = image[videoid] || img.src;
                 }
                 if (!title[videoid]) {
-                    title[videoid] = a.textContent/*@cc_on || a.innerText || '' @*/;
+                    var desc = a.textContent/*@cc_on || a.innerText || '' @*/;
+                    if (!/^\s*http/.test(desc)) {
+                        title[videoid] = desc;
+                    }
                 }
             }
         }
@@ -903,19 +944,30 @@ function BUILD_FUNC(T) {
         var makeNicoReg = /(https?:\/\/[-_.!~*()a-zA-Z0-9;\/?:@&=+$,%#]+)|([a-z]{2}\d+)|(mylist\/\d+)|(^|\D)(\d{10})(?!\d)/mg;
         return function makeNicoLinks(str) {
             return str.replace(makeNicoReg, function(str, $1, $2, $3, $4, $5){
-                if ($1 != null) return ' <a href="' + $1 + '" target="_blank" rel="nofollow">' + $1 + '</a> ';
-                if ($2 != null) {
+                if ($1) return ' <a href="' + $1 + '" target="_blank">' + $1 + '</a> ';
+                if ($2) {
                     if ($2 == 'mp3') return $2;
                     var co = $2.substring(0, 2) == 'co';
-                    if (co) return ' <a href="http://com.nicovideo.jp/community/' + $2 + '" target="_blank" rel="nofollow">'+ $2 + '</a> ';
-                    else    return ' <a href="http://www.nicovideo.jp/watch/' + $2 + '" target="_blank" rel="nofollow">'+ $2 + '</a> ';
+                    if (co) return ' <a href="http://com.nicovideo.jp/community/' + $2 + '" target="_blank">'+ $2 + '</a> ';
+                    else    return ' <a href="http://www.nicovideo.jp/watch/' + $2 + '" target="_blank">'+ $2 + '</a> ';
                 }
-                if ($3 != null) return ' <a href="http://www.nicovideo.jp/' + $3 + '" target="_blank" rel="nofollow">'+ $3 + '</a> ';
-                if ($5 != null) return $4 + ' <a href="http://www.nicovideo.jp/watch/' + $5 + '" target="_blank" rel="nofollow">'+ $5 + '</a> ';
+                if ($3) return ' <a href="http://www.nicovideo.jp/' + $3 + '" target="_blank">'+ $3 + '</a> ';
+                if ($5) return $4 + ' <a href="http://www.nicovideo.jp/watch/' + $5 + '" target="_blank">'+ $5 + '</a> ';
             });
         };
     })();
     T.makeNicoLinks = makeNicoLinks;
+    function createPlayInfoFromText(text) {
+        var dv = document.createElement('div');
+        if (text.indexOf('>') > 0) {
+            dv.innerHTML = text.replace(/<script(?:[ \t\r\n][^>]*)?>[\S\s]*?<\/script[ \t\r\n]*>|<\/?(?:i?frame|html|script|object)(?:[ \t\r\n][^<>]*)?>/gi, ' '); // from oAutoPagerize.
+        }
+        else {
+            dv.innerHTML = makeNicoLinks(text);
+        }
+        return createPlayInfo(dv);
+    }
+    T.createPlayInfoFromText = createPlayInfoFromText;
     function extend(d, s) {
         for (var p in s) d[p] = s[p];
         return d;
@@ -1376,7 +1428,7 @@ function BUILD_FUNC(T) {
         $e(this.listElement).addEventListener('mouseover', this.event_element_mouseover = function(e) {
             if (!self.isDragging) {
                 // disable mousedown event on an inline element. (and enable link drag on Opera)
-                if (e.target === e.currentTarget || /^(a|span|img|input|button|object|embed|iframe)$/i.test(e.target.nodeName)) {
+                if (e.target === e.currentTarget || /^(a|span|img|input|select|button|object|embed|iframe)$/i.test(e.target.nodeName)) {
                     $e(self.listElement).removeEventListener('mousedown', self.event_element_mousedown, false);
                 }
                 else {
@@ -1454,6 +1506,9 @@ function BUILD_FUNC(T) {
         }
     };
     T.TimerManager = TimerManager;
+    /**
+     * Cookie.
+     */
     var Cookie = {
         get : function(key) {
             return decodeURIComponent((new RegExp('(?: |^)' + key + '=([^;]*)').exec(document.cookie) || / _ / )[1]);
@@ -1635,6 +1690,233 @@ function BUILD_FUNC(T) {
         }
     })();
     T.createStorage = createStorage;
+    /**
+     * class KeyBind.
+     */
+    function KeyBind(target) {
+        this.target = target || window;
+        this.binds = [];
+        this.eventType = (browser.ie || browser.webkit) ? 'keydown' : 'keypress';
+    };
+    KeyBind.KEY_MAP = {
+        'backspace' : 8,
+        'tab'       : 9,
+        'enter'     : 13,
+        'shift'     : 16,
+        'ctrl'      : 17,
+        'alt'       : 18,
+        'pause'     : 19,
+        'esc'       : 27,
+        'space'     : 32,
+        'pageup'    : 33,
+        'pagedown'  : 34,
+        'end'       : 35,
+        'home'      : 36,
+        'left'      : 37,
+        'up'        : 38,
+        'right'     : 39,
+        'down'      : 40,
+        'ins'       : 45,
+        'del'       : 46
+        // not support Function keys.
+    };
+    KeyBind.WHITCH_MAP = {
+        'pageup'    : 0,
+        'pagedown'  : 0,
+        'left'      : 0,
+        'up'        : 0,
+        'right'     : 0,
+        'down'      : 0
+    };
+    KeyBind.prototype.start = function() {
+        var self = this;
+        this.target.addEventListener(this.eventType, this._listener = function(e) {
+            if (!self.checkValidEvent(e)) return;
+            for (var i = 0, binds = self.binds, len = binds.length; i < len; i++) {
+                var shortcut = binds[i];
+                if (self.checkShortcut(shortcut, e)) {
+                    e.preventDefault();
+                    shortcut.fn(e);
+                }
+            }
+        }, false);
+    };
+    KeyBind.prototype.checkValidEvent = function(e) {
+        return this.target == e.target || !(/^(?:input|textarea|select|button)$/i.test(e.target.nodeName));
+    };
+    KeyBind.prototype.stop = function() {
+        this.target.removeEventListener(this.eventType, this._listener, false);
+        delete this._listener;
+    };
+    KeyBind.prototype.clear = function() {
+        this.binds = [];
+    };
+    KeyBind.prototype.dispose = function() {
+        this.stop();
+        delete this.binds;
+        delete this.target;
+    };
+    KeyBind.prototype.add = function(ch, fn) {
+        var shortcut = this.parseShortcut(ch);
+        shortcut.fn = fn;
+        this.binds.push(shortcut);
+    };
+    KeyBind.prototype.remove = function(ch) {
+        var sha = this.parseShortcut(ch);
+        var newBinds = null;
+        for (var i = 0, binds = this.binds, len = binds.length; i < len; i++) {
+            var shb = binds[i];
+            if (sha.ch    === shb.ch    &&
+                sha.shift === shb.shift &&
+                sha.alt   === shb.alt   &&
+                sha.ctrl  === shb.ctrl
+            ) {
+                if (!newBinds) newBinds = binds.slice(0, i);
+            }
+            else {
+                if (newBinds) newBinds.push(shb);
+            }
+        }
+        if (newBinds != null) {
+            this.binds = newBinds;
+        }
+    };
+    KeyBind.prototype.parseShortcut = function(str) {
+        var shortcut = {};
+        var cmds = str.toLowerCase().split(/\s+/);
+        for(var i = 0, len = cmds.length; i < len; i++) {
+            var cmd = cmds[i];
+            if      (cmd === 'shift') shortcut.shift = true;
+            else if (cmd === 'alt'  ) shortcut.alt   = true;
+            else if (cmd === 'ctrl' ) shortcut.ctrl  = true;
+        }
+        shortcut.ch = cmds[0];
+        return shortcut;
+    };
+    KeyBind.prototype.checkShortcut = function(shortcut, e) {
+        if (shortcut.ch == '*') return true;
+        if (/^(?:[0-9A-Za-z]|enter|space)$/.test(shortcut.ch)) {
+            if (!!shortcut.shift != e.shiftKey) return false;
+        }
+        else {
+            if (shortcut.shift && !e.shiftKey) return false;
+        }
+        if (!!shortcut.alt   != e.altKey ) return false;
+        if (!!shortcut.ctrl  != e.ctrlKey) return false;
+        if (KeyBind.KEY_MAP[shortcut.ch] != null) {
+            var keyCode = KeyBind.KEY_MAP[shortcut.ch];
+            var which   = KeyBind.WHITCH_MAP[shortcut.ch];
+            if (which == null) which = keyCode;
+            return (e.keyCode || e.charCode) == keyCode && e.which == which;
+        }
+        else {
+            return shortcut.ch == String.fromCharCode(e.which).toLowerCase();
+        }
+    };
+    T.KeyBind = KeyBind;
+    /**
+     * class Platform
+     */
+    function Platform() {
+        this.commands = new ListedKeyMap();
+        this.currentMode = '';
+        this.keyBinds = {};
+        this.currentKeyBind = this.keyBinds[''] = new KeyBind();
+        this.currentKeyBind.start();
+    }
+    Platform.prototype.bindCommand = function(command) {
+        this.commands.add(command.name, command);
+    };
+    Platform.prototype.doCommand = function(commandName) {
+        var cmd = this.commands.get(commandName);
+        if (cmd) {
+            cmd.fn.apply(this, Array.prototype.slice.call(arguments, 1));
+        }
+    };
+    Platform.prototype.bindShortcut = function(commandName, key, mode) {
+        var self = this;
+        var keyBind = this.keyBinds[mode || ''];
+        if (!keyBind) {
+            keyBind = this.keyBinds[mode] = new KeyBind();
+        }
+        keyBind.add(key, function(e) { self.doCommand(commandName, e); });
+    };
+    Platform.prototype.unbindShortcut = function(key, mode) {
+        var keyBind = this.keyBinds[mode || ''];
+        if (!keyBind) return;
+        keyBind.remove(key);
+    };
+    Platform.prototype.changeMode = function(mode) {
+        if (this.currentKeyBind) this.currentKeyBind.stop();
+        this.currentKeyBind = this.keyBinds[mode || ''];
+        if (this.currentKeyBind) this.currentKeyBind.start();
+    };
+    Platform.prototype.clearMode = function(mode) {
+        this.changeMode(null);
+    };
+    T.Platform = Platform;
+    /**
+     * class ClipboardReciever 
+     * -- public fields -- *
+     * [constructor]
+     *   doc     - document object to observe.
+     * [property]
+     *   text    - pasted text.
+     * [event]
+     *   onpaste - fire event when pasted text.
+     * ------------------- *
+     */
+    function ClipboardReciever(doc) {
+        this.build(doc || document);
+        this.onpaste = null;
+    }
+    ClipboardReciever.prototype.build = function(document) {
+        var txt = document.createElement('textarea');
+        txt.style.cssText = 'position: absolute; top: -1px; left: -1px; width : 1px; height: 1px; ';
+        var self = this;
+        
+        function attach() {
+            txt.value = '';
+            document.body.appendChild(txt);
+            txt.focus();
+        }
+        function detach() {
+            txt.blur();
+            if (txt.parentNode) txt.parentNode.removeChild(txt);
+        }
+        function onpaste() {
+            self.text = txt.value;
+            txt.value = '';
+            if (self.onpaste) self.onpaste(self);
+            self.text = null;
+        }
+        $e(document).addEventListener('keydown', function(e) {
+            if (e.keyCode == 17) {
+                attach();
+            }
+        }, false);
+        $e(txt).addEventListener('blur', detach, false);
+        $e(txt).addEventListener('keyup', function(e) {
+            if (e.keyCode == 86) {
+                if (txt.value) onpaste();
+            }
+            if (e.keyCode == 17) {
+                detach();
+            }
+        }, false);
+        function observeKey(e) {
+            if (e.keyCode == 86) {
+                if (txt.value) onpaste();
+            }
+            else {
+                //e.preventDefault();
+            }
+        }
+        $e(txt).addEventListener('keydown', observeKey, false);
+        $e(txt).addEventListener('keypress', observeKey, false);
+        this.element = txt;
+    };
+    T.ClipboardReciever = ClipboardReciever;
 }
 WNP.BUILD_FUNC = BUILD_FUNC;
 function BUILD_WNP(T) {
@@ -1720,7 +2002,7 @@ function BUILD_WNP(T) {
             '  <img style="display: none">',
             '  <p style="position:absolute; right: 5px; bottom: 15px; font-size: 30px; font-weight: bold; color: #AAA;"></p>',
             '</div>',
-            '<iframe name="' + (name || '') + '" style="margin: 0; padding: 0; border: none; " frameborder="0" scrolling="no" width="970" height="540" src="about:blank"></iframe>',
+            '<iframe name="' + (name || '') + '" class="wnp_nicoflame" style="margin: 0; padding: 0; border: none; " frameborder="0" scrolling="no" width="970" height="540" src="about:blank"></iframe>',
         ].join('');
         this._.container = dv;
         this._.loadingbx = dv.childNodes[0];
@@ -2200,14 +2482,22 @@ function BUILD_WNP(T) {
                     if (typeof self.onfatal == 'function') try { self.onfatal(event); } catch(e) { postError(e) }
                     return;
                 }
-                // over access.
                 var h1 = nico.document.getElementsByTagName('h1')[0];
                 if (h1) {
+                    // over access.
                     var h1Text = h1.textContent || h1.innerText;
                     if (h1Text.indexOf(Lang.OVER_ACCESS) >= 0 && nico.document.title.indexOf(h1Text) < 0) {
                         var event = { type: 'fatal', message : h1Text };
                         self.dispatchEvent(event);
                         if (typeof self.onfatal == 'function') try { self.onfatal(event); } catch(e) { postError(e) }
+                        return;
+                    }
+                    // missing. 
+                    if (h1Text.indexOf(Lang.MISSING) >= 0 && nico.document.title.indexOf(h1Text) < 0) {
+                        self.stop();
+                        var event = { type: 'error', message : h1Text };
+                        self.dispatchEvent(event);
+                        if (typeof self.onerror == 'function') try { self.onerror(event); } catch(e) { postError(e) }
                         return;
                     }
                 }
@@ -2403,6 +2693,7 @@ function BUILD_WNP(T) {
         this.lastOperationTime = new Date();
         this.lastUpdate = 0;
         this.menuCount = new ListElementIterator(this.wnpWindow.document.getElementById('WNP_MENU_CONTAINER')).count();
+        this.currentMenuIndex = 0;
         this.menuHide();
     };
     WNP.prototype.build = function() {
@@ -2411,106 +2702,134 @@ function BUILD_WNP(T) {
         this.wnpCore = new WNPCore(d);
         d.getElementById('WNP_VIEW').appendChild(this.wnpCore.element);
         var self = this;
-        $e(d.getElementById('WNP_C_PREV')).addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            self.schedulePrev();
-        }, false);
-        $e(d.getElementById('WNP_C_PLAY')).addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            self.playToggle();
-        }, false);
-        $e(d.getElementById('WNP_C_NEXT')).addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            self.scheduleNext();
-        }, false);
-        $e(d.getElementById('WNP_C_LOOP')).addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            self.applyPreferences({ loop: !self.prefs.loop });
-        }, false);
-        $e(d.getElementById('WNP_C_NICO_REPEAT')).addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            self.applyPreferences({ repeat: !self.wnpCore.current.isRepeat });
-        }, false);
-        $e(d.getElementById('WNP_C_NICO_COMM')).addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            self.applyPreferences({ comment_off: !self.wnpCore.current.isCommentOff });
-            self.showControlPanel();
-        }, false);
-        $e(d.getElementById('WNP_C_NICO_MUTE')).addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            self.applyPreferences({ mute: !self.wnpCore.current.isMute });
-            self.showControlPanel();
-        }, false);
-        $e(d.getElementById('WNP_C_PLAYLIST_URI')).addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            self.wnpWindow.alert(Lang.SAVE_PLAYLIST_USAGE);
-        }, false);
-        $e(d.getElementById('WNP_C_PLAYLIST')).addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            self.playlistToggle();
-        }, false);
-        $e(d.getElementById('WNP_C_HISTORY')).addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            self.historyToggle();
-        }, false);
-        $e(d.getElementById('WNP_C_PREFERENCE')).addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            self.preferenceToggle();
-        }, false);
-        $e(d.getElementById('WNP_HEADER')).addEventListener('click', function(e) {
-            self.menuToggle();
-        }, false);
-        $e(d.getElementById('WNP_HEADER')).addEventListener('mousemove', function(e) {
-            self.hideHeaderAfter(5000);
-        }, false);
-        $e(d.getElementById('WNP_C_SCREEN')).addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            self.layoutToggle();
-        }, false);
-        $e(d.getElementById('WNP_C_ALWAYS_ON_TOP')).addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            self.applyPreferences({ always_on_top: !self.prefs.always_on_top });
-        }, false);
-        $e(d.getElementById('WNP_C_PLAYLIST_STYLE')).addEventListener('click', function(e) {
-            e.stopPropagation();
-            self.applyPreferences({ playlist_style_simple: e.currentTarget.checked }, true);
-        }, false);
-        $e(d.getElementById('WNP_C_REMOVE_ON_FINISH')).addEventListener('click', function(e) {
-            e.stopPropagation();
-            self.applyPreferences({ remove_on_finish: e.currentTarget.checked }, true);
-        }, false);
-        $e(d.getElementById('WNP_C_USE_HISTOPRY')).addEventListener('click', function(e) {
-            e.stopPropagation();
-            self.applyPreferences({ use_history: e.currentTarget.checked }, true);
-        }, false);
-        $e(d.getElementById('WNP_FOOTER')).addEventListener('click', function(e) {
-            self.wnpCore.setControlShowing(!self.wnpCore.current.isControlShowing);
-        }, false);
-        $e(d.getElementById('WNP_FOOTER')).addEventListener('mouseover', function(e) {
+        
+        var platform = new Platform();
+        // bind commands.
+        platform.bindCommand({ name: 'PlayStop',  fn: function() { self.playToggle(); }, desc: Lang.COMMAND_NEXT_ENTRY });
+        platform.bindCommand({ name: 'PlayPause', fn: function() { self.pauseToggle(); }, desc: Lang.COMMAND_NEXT_ENTRY });
+        platform.bindCommand({ name: 'PlayPrev',  fn: function() { self.schedulePrev(); }, desc: Lang.COMMAND_NEXT_ENTRY });
+        platform.bindCommand({ name: 'PlayNext',  fn: function() { self.scheduleNext(); }, desc: Lang.COMMAND_NEXT_ENTRY });
+        platform.bindCommand({ name: 'VolumeUp',     fn: function() { self.volume(  5); }, desc: Lang.COMMAND_NEXT_ENTRY });
+        platform.bindCommand({ name: 'VolumeUp+',    fn: function() { self.volume( 20); }, desc: Lang.COMMAND_NEXT_ENTRY });
+        platform.bindCommand({ name: 'VolumeDown',   fn: function() { self.volume( -5); }, desc: Lang.COMMAND_NEXT_ENTRY });
+        platform.bindCommand({ name: 'VolumeDown-',  fn: function() { self.volume(-20); }, desc: Lang.COMMAND_NEXT_ENTRY });
+        platform.bindCommand({ name: 'SeekForward',    fn: function() { self.seek( 15); }, desc: Lang.COMMAND_NEXT_ENTRY });
+        platform.bindCommand({ name: 'SeekForward+',   fn: function() { self.seek( 60); }, desc: Lang.COMMAND_NEXT_ENTRY });
+        platform.bindCommand({ name: 'SeekBackward',   fn: function() { self.seek(-15); }, desc: Lang.COMMAND_NEXT_ENTRY });
+        platform.bindCommand({ name: 'SeekBackward-',  fn: function() { self.seek(-65); }, desc: Lang.COMMAND_NEXT_ENTRY });
+        platform.bindCommand({ name: 'SeekBackward--', fn: function() { self.seek(Number.NEGATIVE_INFINITY); }, desc: Lang.COMMAND_NEXT_ENTRY });
+        platform.bindCommand({ name: 'SelectNextItem',     fn: function() { self.selectNextItem(); }, desc: Lang.COMMAND_NEXT_ENTRY });
+        platform.bindCommand({ name: 'SelectPrevItem',     fn: function() { self.selectPrevItem(); }, desc: Lang.COMMAND_PREV_ENTRY });
+        platform.bindCommand({ name: 'PlaySelectedItem',   fn: function() { self.playSelectedItem(); }, desc: Lang.COMMAND_PREV_ENTRY });
+        platform.bindCommand({ name: 'DeleteSelectedItem', fn: function() { self.deleteSelectedItem(); }, desc: Lang.COMMAND_PREV_ENTRY });
+        platform.bindCommand({ name: 'Menu',       fn: function() { self.menuToggle(); }, desc: Lang.COMMAND_NEXT_ENTRY });
+        platform.bindCommand({ name: 'MenuNext',   fn: function() { self.scrollMenuItem(self.currentMenuIndex + 1); }, desc: Lang.COMMAND_NEXT_ENTRY });
+        platform.bindCommand({ name: 'MenuPrev',   fn: function() { self.scrollMenuItem(self.currentMenuIndex - 1); }, desc: Lang.COMMAND_PREV_ENTRY });
+        platform.bindCommand({ name: 'Playlist',   fn: function() { self.playlistToggle(); }, desc: Lang.COMMAND_PREV_ENTRY });
+        platform.bindCommand({ name: 'History',    fn: function() { self.historyToggle(); }, desc: Lang.COMMAND_PREV_ENTRY });
+        platform.bindCommand({ name: 'Preference', fn: function() { self.preferenceToggle(); }, desc: Lang.COMMAND_PREV_ENTRY });
+        platform.bindCommand({ name: 'Comment', fn: function() { self.commentOnOff(); }, desc: Lang.COMMAND_PREV_ENTRY });
+        platform.bindCommand({ name: 'Loop',    fn: function() { self.loopOnOff(); }, desc: Lang.COMMAND_PREV_ENTRY });
+        platform.bindCommand({ name: 'Repeat',  fn: function() { self.repeatOnOff(); }, desc: Lang.COMMAND_PREV_ENTRY });
+        platform.bindCommand({ name: 'Mute',    fn: function() { self.muteOnOff(); }, desc: Lang.COMMAND_PREV_ENTRY });
+        platform.bindCommand({ name: 'Open',    fn: function() { self.openPrompt(); }, desc: Lang.COMMAND_PREV_ENTRY });
+        platform.bindCommand({ name: 'View',    fn: function() { self.layoutToggle(); }, desc: Lang.COMMAND_PREV_ENTRY });
+        platform.bindCommand({ name: 'NicoControl', fn: function() { self.wnpCore.setControlShowing(!self.wnpCore.current.isControlShowing); }, desc: Lang.COMMAND_PREV_ENTRY });
+        platform.bindCommand({ name: 'AlwaysOnTop', fn: function() { self.applyPreferences({ always_on_top: !self.prefs.always_on_top }); }, desc: Lang.COMMAND_PREV_ENTRY });
+        // bind default shortcut.
+        var shortcutList = this.getDefaultKeybordShortcut();
+        for (var i = 0; i < shortcutList.length; i++) {
+            var item = shortcutList[i];
+            platform.bindShortcut(item.command, item.key);
+        }
+        this.platform = platform;
+        
+        // release focus by force.
+        this._blur = function () {
+            if (!self._blurInput) {
+                var input = d.createElement('input');
+                input.type = 'radio';
+                input.style.cssText = 'position:absolute; top: -1px; left: -1px; width: 1px; height: 1px; ';
+                var menu = d.getElementById('WNP_MENU');
+                menu.parentNode.insertBefore(input, menu);
+                self._blurInput = input;
+            }
+            self._blurInput.focus();
+        };
+        
+        function escapeKey(e) {
+            self._blur();
             self.restoreControlPanel();
+            self.scheduleCancel();
+            if (self.isSliding) {
+                self.isSliding = false;
+                d.getElementById('WNP_MENU_SLIDER').style.backgroundColor = '';
+                d.body.style.cursor = '';
+            }
+        }
+        
+        $e(d).addEventListener('keypress', function(e) { if (e.keyCode == 27) e.preventDefault(); }, false); // prevent restore fullscreen. (Please restore by F11.)
+        $e(d).addEventListener('keydown', function(e) { if (e.keyCode == 27) escapeKey(e); }, false);
+        this.wnpCore.addEventListener('load', this._wnp_load = function(e) {
+            var iframe = self.wnpCore.element.querySelector('.wnp_nicoflame');
+            $e(iframe.contentWindow).addEventListener('focus', function(e) { 
+                if (self.wnpCore.current.style != WNPCore.STYLE_RESTORE) {
+                    self._blur(); // for firefox, chrome.
+                    setTimeout(function() { self.wnpCore.sight(); }, 10); // for chrome.
+                }
+            }, false);
         }, false);
-        $e(d.getElementById('WNP_FOOTER')).addEventListener('mousemove', function(e) {
-            self.hideFooterAfter(5000);
-        }, false);
-        $e(d.getElementById('WNP_C_NICO_PAUSE')).addEventListener('click', function(e) {
-            e.stopPropagation();
-            self.pauseToggle();
-        }, false);
-        $e(d.getElementById('WNP_C_NICO_SEEKBAR')).addEventListener('click', function(e) {
-            e.stopPropagation();
+        
+        function bindEventCommand(el, type, command) {
+            $e(el).addEventListener(type, function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                platform.doCommand(command);
+            }, false);
+        }
+        function bindEventFunc(el, type, func, p, s, c) {
+            $e(el).addEventListener(type, function(e) {
+                if (p) e.preventDefault();
+                if (s) e.stopPropagation();
+                func(e);
+            }, !!c);
+        }
+        
+        bindEventCommand(d.getElementById('WNP_C_PREV'), 'click', 'PlayPrev');
+        bindEventCommand(d.getElementById('WNP_C_PLAY'), 'click', 'PlayStop');
+        bindEventCommand(d.getElementById('WNP_C_NEXT'), 'click', 'PlayNext');
+        bindEventCommand(d.getElementById('WNP_C_LOOP'), 'click', 'Loop');
+        bindEventCommand(d.getElementById('WNP_C_NICO_REPEAT'), 'click', 'Repeat');
+        bindEventCommand(d.getElementById('WNP_C_NICO_COMM'), 'click', 'Comment');
+        bindEventCommand(d.getElementById('WNP_C_NICO_MUTE'), 'click', 'Mute');
+        bindEventCommand(d.getElementById('WNP_C_NICO_OPEN'), 'click', 'Open');
+        bindEventCommand(d.getElementById('WNP_C_PLAYLIST'), 'click', 'Playlist');
+        bindEventCommand(d.getElementById('WNP_C_HISTORY'), 'click', 'History');
+        bindEventCommand(d.getElementById('WNP_C_PREFERENCE'), 'click', 'Preference');
+        bindEventCommand(d.getElementById('WNP_C_SCREEN'), 'click', 'View');
+        bindEventCommand(d.getElementById('WNP_C_NICO_PAUSE'), 'click', 'PlayPause');
+        bindEventCommand(d.getElementById('WNP_HEADER'), 'click', 'Menu');
+        bindEventCommand(d.getElementById('WNP_FOOTER'), 'click', 'NicoControl');
+        bindEventCommand(d.getElementById('WNP_C_ALWAYS_ON_TOP'), 'click', 'AlwaysOnTop');
+        
+        bindEventFunc(d.getElementById('WNP_C_PLAYLIST_URI'), 'click', function(e) { self.wnpWindow.alert(Lang.SAVE_PLAYLIST_USAGE); }, true, true);
+        bindEventFunc(d.getElementById('WNP_HEADER'), 'mousemove', function(e) { self.hideHeaderAfter(5000); });
+        bindEventFunc(d.getElementById('WNP_FOOTER'), 'mouseover', function(e) { self.restoreControlPanel(); });
+        bindEventFunc(d.getElementById('WNP_FOOTER'), 'mousemove', function(e) { self.hideFooterAfter(5000); });
+        bindEventFunc(d.getElementById('WNP_C_PLAYLIST_STYLE'), 'click', function(e) { self.applyPreferences({ playlist_style_simple: e.currentTarget.checked }, true); }, false, true);
+        bindEventFunc(d.getElementById('WNP_C_REMOVE_ON_FINISH'), 'click', function(e) { self.applyPreferences({ remove_on_finish: e.currentTarget.checked }, true); }, false, true);
+        bindEventFunc(d.getElementById('WNP_C_USE_HISTORY'), 'click', function(e) { self.applyPreferences({ use_history: e.currentTarget.checked }, true); }, false, true);
+        bindEventFunc(d.getElementById('WNP_C_PREF_PLAYLIST_STYLE'), 'click', function(e) { self.applyPreferences({ playlist_style_simple: e.currentTarget.checked }, true); }, false, true);
+        bindEventFunc(d.getElementById('WNP_C_PREF_REMOVE_ON_FINISH'), 'click', function(e) { self.applyPreferences({ remove_on_finish: e.currentTarget.checked }, true); }, false, true);
+        bindEventFunc(d.getElementById('WNP_C_PREF_USE_HISTORY'), 'click', function(e) { self.applyPreferences({ use_history: e.currentTarget.checked }, true); }, false, true);
+        bindEventFunc(d.getElementById('WNP_C_PREF_SKIP_DELETED_VIDEO'), 'click', function(e) { self.applyPreferences({ skip_deleted_video: e.currentTarget.checked }, true); }, false, true);
+        bindEventFunc(d.getElementById('WNP_C_PREF_USE_OFFTIMER'), 'click', function(e) { self.applyPreferences({ use_offtimer: e.currentTarget.checked }, true); }, false, true);
+        bindEventFunc(d.getElementById('WNP_C_PREF_OFFTIMER_MINUTE'), 'change', function(e) { self.applyPreferences({ offtimer_minute: e.currentTarget.value }, true); }, false, true);
+        bindEventFunc(d.getElementById('WNP_C_PREF_USE_LOOP_BREAK'), 'click', function(e) { self.applyPreferences({ use_loop_break: e.currentTarget.checked }, true); }, false, true);
+        bindEventFunc(d.getElementById('WNP_C_PREF_LOOP_BREAK_COUNT'), 'change', function(e) { self.applyPreferences({ loop_break_count: e.currentTarget.value }, true); }, false, true);
+        bindEventFunc(d.getElementById('WNP_C_SET_DEFAULT'), 'click', function(e) { self.setDefaultPreferences(); }, false, true);
+
+        bindEventFunc(d.getElementById('WNP_C_NICO_SEEKBAR'), 'click', function(e) {
             if (!self.wnpCore.current.isPlaying) return;
             var seekbar = e.currentTarget;
             var width = seekbar.offsetWidth;
@@ -2520,30 +2839,24 @@ function BUILD_WNP(T) {
                 self.wnpCore.seekTo(len * (loc / width));
                 self.updateControlPanelStatus();
             }
-        }, false);
-        $e(d.getElementById('WNP_C_NICO_VOLUMEBAR')).addEventListener('click', function(e) {
-            e.stopPropagation();
-            if (!self.wnpCore.current.isPlaying) return;
+        }, false, true);
+        bindEventFunc(d.getElementById('WNP_C_NICO_VOLUMEBAR'), 'click', function(e) {
             var volumebar = e.currentTarget;
             var width = volumebar.offsetWidth;
             var loc = (e.offsetX != null) ? e.offsetX : (e.layerX - volumebar.offsetLeft);
             var len = 100;
             self.wnpCore.volumeTo(len * (loc / width));
             self.updateControlPanelStatus();
-        }, false);
-        $e(d.getElementById('WNP_MENU_SLIDER')).addEventListener('mousedown', function(e) {
-            e.stopPropagation();
-            e.preventDefault();
+        }, false, true);
+        bindEventFunc(d.getElementById('WNP_MENU_SLIDER'), 'mousedown', function(e) {
             self.isSliding = true;
             d.getElementById('WNP_MENU_SLIDER').style.backgroundColor = '#696969';
             d.body.style.cursor = 'e-resize';
-        }, false);
-        $e(d).addEventListener('mousemove', function(e) {
-            if (self.isSliding) {
-                e.preventDefault(); // for ie.
-            }
-        }, false);
-        $e(d).addEventListener('mouseup', function(e) {
+        }, true, true);
+        bindEventFunc(d, 'mousedown', function(e) {
+            if (self.isSliding) e.preventDefault(); // for ie.
+        });
+        bindEventFunc(d, 'mouseup', function(e) {
             if (!self.isSliding) return;
             self.isSliding = false;
             d.getElementById('WNP_MENU_SLIDER').style.backgroundColor = '';
@@ -2555,147 +2868,23 @@ function BUILD_WNP(T) {
             if (ratio > 100) ratio = 100;
             self.prefs.menu_width_ratio = ratio;
             self.menuShow();
-        }, false);
-        $e(d).addEventListener((browser.ie || browser.webkit) ? 'keydown' : 'keypress', function(e) {
+        });
+
+        function updateLastOperationTime() { 
             self.lastOperationTime = new Date();
-            if (/^(?:input|textarea|select)$/i.test(e.target.nodeName)) return;
-            if (e.keyCode == 27) { // Esc
-                self.restoreControlPanel();
-                self.scheduleCancel();
-                e.preventDefault();
-                if (self.isSliding) {
-                    self.isSliding = false;
-                    d.getElementById('WNP_MENU_SLIDER').style.backgroundColor = '';
-                    d.body.style.cursor = '';
-                }
-            }
-            if (e.keyCode == 33) { // Page Up
-                self.schedulePrev();
-                e.preventDefault();
-            }
-            if (e.keyCode == 34) { // Page Down
-                self.scheduleNext();
-                e.preventDefault();
-            }
-            if (e.keyCode == 38) { // up
-                self.volume(5);
-                e.preventDefault();
-            }
-            if (e.keyCode == 40) { // down
-                self.volume(-5);
-                e.preventDefault();
-            }
-            if (e.keyCode == 39) { // right
-                self.seek(15);
-                e.preventDefault();
-            }
-            if (e.keyCode == 37) { // left
-                if (e.ctrlKey) self.seek(Number.NEGATIVE_INFINITY);
-                else           self.seek(-15);
-                e.preventDefault();
-            }
-            if (String.fromCharCode(e.keyCode||e.which).toLowerCase() == 'j') {
-                if (!self.selectionIterator.item) {
-                    self.selectionIterator.current(self.playlistIterator.item);
-                }
-                self.selectionIterator.next().isNullThenFirst();
-                if (self.selectionIterator.item == null) return;
-                self.listUtil.select(self.selectionIterator.item);
-                self.scrollPlaylistTo(self.selectionIterator.item);
-                e.preventDefault();
-            }
-            if (String.fromCharCode(e.keyCode||e.which).toLowerCase() == 'k') {
-                if (!self.selectionIterator.item) {
-                    self.selectionIterator.current(self.playlistIterator.item).isNullThenFirst();
-                }
-                else {
-                    self.selectionIterator.previous().isNullThenLast();
-                }
-                if (self.selectionIterator.item == null) return;
-                self.listUtil.select(self.selectionIterator.item);
-                self.scrollPlaylistTo(self.selectionIterator.item);
-                e.preventDefault();
-            }
-            if (String.fromCharCode(e.keyCode||e.which).toLowerCase() == 's') {
-                self.scrollMenuItem(self.currentMenuIndex + 1);
-            }
-            if (String.fromCharCode(e.keyCode||e.which).toLowerCase() == 'a') {
-                self.scrollMenuItem(self.currentMenuIndex - 1);
-            }
-            if (String.fromCharCode(e.keyCode||e.which).toLowerCase() == 'o') {
-                if (self.selectionIterator && self.selectionIterator.item) {
-                    self.playlistIterator.current(self.selectionIterator.item);
-                    self.play();
-                }
-                e.preventDefault();
-            }
-            if (e.keyCode == 46) { // DEL
-                if (self.selectionIterator && self.selectionIterator.item) {
-                    var item = self.selectionIterator.item;
-                    self.selectionIterator.next();
-                    self.remove(item);
-                    self.selectionIterator.isNullThenLast();
-                    self.listUtil.select(self.selectionIterator.item);
-                    self.scrollPlaylistTo(self.selectionIterator.item);
-                }
-                e.preventDefault();
-            }
-            if (String.fromCharCode(e.keyCode||e.which).toLowerCase() == 'n') {
-                self.playlistToggle();
-                e.preventDefault();
-            }
-            if (String.fromCharCode(e.keyCode||e.which).toLowerCase() == 'h') {
-                self.historyToggle();
-                e.preventDefault();
-            }
-            if (String.fromCharCode(e.keyCode||e.which).toLowerCase() == 'p') {
-                self.preferenceToggle();
-                e.preventDefault();
-            }
-            if (String.fromCharCode(e.keyCode||e.which).toLowerCase() == 'c') {
-                self.applyPreferences({ comment_off: !self.wnpCore.current.isCommentOff });
-                self.showControlPanel();
-                e.preventDefault();
-            }
-            if (String.fromCharCode(e.keyCode||e.which).toLowerCase() == 'l') {
-                self.applyPreferences({ loop: !self.prefs.loop });
-                e.preventDefault();
-            }
-            if (String.fromCharCode(e.keyCode||e.which).toLowerCase() == 'r') {
-                self.applyPreferences({ repeat: !self.wnpCore.current.isRepeat });
-                self.showControlPanel();
-                e.preventDefault();
-            }
-            if (String.fromCharCode(e.keyCode||e.which).toLowerCase() == 'm') {
-                self.applyPreferences({ mute: !self.wnpCore.current.isMute });
-                self.showControlPanel();
-                e.preventDefault();
-            }
-            if (String.fromCharCode(e.keyCode||e.which).toLowerCase() == 'v') {
-                self.layoutToggle();
-                e.preventDefault();
-            }
-            if (e.keyCode == 32 || e.which == 32) { // SP
-                self.pauseToggle();
-                e.preventDefault();
-            }
-        }, false);
-        $e(d).addEventListener('mousemove', function(e) {
-            self.lastOperationTime = new Date();
-        }, true);
-        $e(this.wnpWindow).addEventListener('focus', function() {
-            self.lastOperationTime = new Date();
-        }, false);
-        $e(this.wnpWindow).addEventListener('resize', function() {
-            self.lastOperationTime = new Date();
-        }, false);
-        $e(this.wnpWindow).addEventListener('blur', function() {
+        }
+        bindEventFunc(d, 'keydown', updateLastOperationTime, false, false, true);
+        bindEventFunc(d, 'mousemove', updateLastOperationTime, false, false, true);
+        //bindEventFunc(this.wnpWindow, 'focus', updateLastOperationTime);
+        bindEventFunc(this.wnpWindow, 'resize', updateLastOperationTime);
+        bindEventFunc(this.wnpWindow, 'blur', function() {
             if (self.prefs.always_on_top) {
                 self.timer.setTimeout('always_on_top', function() {
                     self.wnpWindow.focus();
                 }, 500);
             }
         }, false);
+        
         var list = d.getElementById('WNP_PLAYLIST_ITEMS');
         var listUtil = new ListUtil(list);
         listUtil.addEventListener('dragend', function() {
@@ -2722,47 +2911,83 @@ function BUILD_WNP(T) {
         this.playlistIterator = new ListElementIterator(list);
         this.selectionIterator = new ListElementIterator(list);
 
-        $e(d.getElementById('WNP_C_PREF_PLAYLIST_STYLE')).addEventListener('click', function(e) {
-            e.stopPropagation();
-            self.applyPreferences({ playlist_style_simple: e.currentTarget.checked }, true);
-        }, false);
-        $e(d.getElementById('WNP_C_PREF_REMOVE_ON_FINISH')).addEventListener('click', function(e) {
-            e.stopPropagation();
-            self.applyPreferences({ remove_on_finish: e.currentTarget.checked }, true);
-        }, false);
-        $e(d.getElementById('WNP_C_PREF_USE_HISTORY')).addEventListener('click', function(e) {
-            e.stopPropagation();
-            self.applyPreferences({ use_history: e.currentTarget.checked }, true);
-        }, false);
-        $e(d.getElementById('WNP_C_PREF_SKIP_DELETED_VIDEO')).addEventListener('click', function(e) {
-            e.stopPropagation();
-            self.applyPreferences({ skip_deleted_video: e.currentTarget.checked }, true);
-        }, false);
-        $e(d.getElementById('WNP_C_PREF_USE_OFFTIMER')).addEventListener('click', function(e) {
-            e.stopPropagation();
-            self.applyPreferences({ use_offtimer: e.currentTarget.checked }, true);
-        }, false);
-        $e(d.getElementById('WNP_C_PREF_OFFTIMER_MINUTE')).addEventListener('change', function(e) {
-            e.stopPropagation();
-            self.applyPreferences({ offtimer_minute: e.currentTarget.value }, true);
-        }, false);
-        $e(d.getElementById('WNP_C_PREF_USE_LOOP_BREAK')).addEventListener('click', function(e) {
-            e.stopPropagation();
-            self.applyPreferences({ use_loop_break: e.currentTarget.checked }, true);
-        }, false);
-        $e(d.getElementById('WNP_C_PREF_LOOP_BREAK_COUNT')).addEventListener('change', function(e) {
-            e.stopPropagation();
-            self.applyPreferences({ loop_break_count: e.currentTarget.value }, true);
-        }, false);
-        $e(d.getElementById('WNP_C_SET_DEFAULT')).addEventListener('click', function(e) {
-            e.stopPropagation();
-            self.setDefaultPreferences();
-        }, false);
         this.prefs = this.getDefaultPreferences();
         this.storage = createStorage();
         this.storage.onload = function () {
             self.loadPreferences();
         };
+        
+        // Clipboard Support.
+        var clipboard = new ClipboardReciever(d);
+        clipboard.onpaste = function() {
+            var playlist = createPlayInfoFromText(clipboard.text);
+            if (playlist.items.length > 0) {
+                self.addEx(playlist, { start: !self.wnpCore.current.isPlaying });
+            }
+        };
+        var org_checkValidEvent = platform.keyBinds[''].checkValidEvent;
+        platform.keyBinds[''].checkValidEvent = function(e) {
+            if (e.target === clipboard.element || e.target === self._blurInput) return true;
+            return org_checkValidEvent(e);
+        };
+    };
+    WNP.prototype.openPrompt = function() {
+        var text = this.wnpWindow.prompt(Lang.PLEASE_INPUT_VIDEOID_OR_URL);
+        if (text) {
+            var playlist = createPlayInfoFromText(text);
+            if (playlist.items.length > 0) {
+                this.addEx(playlist, { start: !this.wnpCore.current.isPlaying });
+            }
+        }
+    };
+    WNP.prototype.selectNextItem = function() {
+        if (!this.selectionIterator.item) {
+            this.selectionIterator.current(this.playlistIterator.item);
+        }
+        this.selectionIterator.next().isNullThenFirst();
+        if (this.selectionIterator.item == null) return;
+        this.listUtil.select(this.selectionIterator.item);
+        this.scrollPlaylistTo(this.selectionIterator.item);
+    };
+    WNP.prototype.selectPrevItem = function() {
+        if (!this.selectionIterator.item) {
+            this.selectionIterator.current(this.playlistIterator.item).isNullThenFirst();
+        }
+        else {
+            this.selectionIterator.previous().isNullThenLast();
+        }
+        if (this.selectionIterator.item == null) return;
+        this.listUtil.select(this.selectionIterator.item);
+        this.scrollPlaylistTo(this.selectionIterator.item);
+    };
+    WNP.prototype.playSelectedItem = function() {
+        this.scheduleItem(this.selectionIterator.item);
+    };
+    WNP.prototype.deleteSelectedItem = function() {
+        if (this.selectionIterator && this.selectionIterator.item) {
+            var item = this.selectionIterator.item;
+            this.selectionIterator.next();
+            this.remove(item);
+            this.selectionIterator.isNullThenLast();
+            this.listUtil.select(this.selectionIterator.item);
+            this.scrollPlaylistTo(this.selectionIterator.item);
+        }
+    };
+    WNP.prototype.scrollPlaylistTo = function(item) {
+        if (!item) return;
+        if (this.scrollSoar != null) {
+            this.scrollSoar.cancel();
+        }
+        var list = this.wnpWindow.document.getElementById('WNP_PLAYLIST_ITEMS');
+        this.scrollSoar = new Soar(list);
+        var allowance = item.offsetHeight; // 1row.
+        this.scrollSoar
+            .to({scrollTop: Math.min(Math.max(item.offsetTop - list.clientTop - allowance, 0), list.scrollHeight - list.clientHeight)})
+            .go(this.wnpWindow);
+        var self = this;
+        this.scrollSoar.addEventListener('finish', function() {
+            self.scrollSoar = null;
+        });
     };
     WNP.prototype.seek = function(time) {
         this.wnpCore.seek(time);
@@ -2850,7 +3075,7 @@ function BUILD_WNP(T) {
             this.menuHide();
         }
         else {
-            this.playlistToggle(); // default menu.
+            this.showMenuItem(this.currentMenuIndex);
         }
     };
     WNP.prototype.playlistToggle = function() {
@@ -2881,17 +3106,25 @@ function BUILD_WNP(T) {
             }
         }
         else {
+            if (this.menuSoar && this.menuSoar.isActive) {
+                this.menuSoar.cancel();
+            }
             if (this.isMenuShowing && (index < 0 || index >= this.menuCount)) {
                 this.menuHide();
             }
             else {
-                if (this.menuSoar && this.menuSoar.isActive) {
-                    this.menuSoar.cancel();
+                var menuContainer = this.wnpWindow.document.getElementById('WNP_MENU_CONTAINER');
+                var menus = menuContainer.querySelectorAll('.wnp_menu_content');
+                for (var i = 0; i < menus.length; i++) {
+                    menus[i].style.visibility = '';
                 }
                 if (!this.menuSoar) {
-                    var menuContainer = this.wnpWindow.document.getElementById('WNP_MENU_CONTAINER');
                     this.menuSoar = new Soar(menuContainer.style);
                     this.menuSoar.from({marginLeft: '0.0%'});
+                    var self = this;
+                    this.menuSoar.addEventListener('finish', function() {
+                        self.showMenuItem(self.currentMenuIndex);
+                    }, false);
                 }
                 if (browser.mozilla) {
                     this.showMenuItem(index);
@@ -2907,6 +3140,18 @@ function BUILD_WNP(T) {
         if (index < 0) index = 0;
         if (index >= this.menuCount) index = this.menuCount - 1;
         var menuContainer = this.wnpWindow.document.getElementById('WNP_MENU_CONTAINER');
+        
+        // hide other panel to avoid focus invisible controls.
+        var menus = menuContainer.querySelectorAll('.wnp_menu_content');
+        for (var i = 0; i < menus.length; i++) {
+            if (i == index) {
+                menus[i].style.visibility = '';
+            }
+            else {
+                menus[i].style.visibility = 'hidden';
+            }
+        }
+        
         menuContainer.style.marginLeft = -(100 * index) + '%';
         if (!this.isMenuShowing) this.menuShow();
         this.currentMenuIndex = index;
@@ -2915,6 +3160,7 @@ function BUILD_WNP(T) {
         var menu = this.wnpWindow.document.getElementById('WNP_MENU');
         var view = this.wnpWindow.document.getElementById('WNP_VIEW');
         menu.style.borderRightWidth = '5px'; // for Opera9.5
+        menu.style.visibility = '';
         menu.style.width = this.prefs.menu_width_ratio + '%';
         view.style.width = (100-this.prefs.menu_width_ratio) + '%';
         this.isMenuShowing = true;
@@ -2923,10 +3169,57 @@ function BUILD_WNP(T) {
         var menu = this.wnpWindow.document.getElementById('WNP_MENU');
         var view = this.wnpWindow.document.getElementById('WNP_VIEW');
         menu.style.borderRightWidth = '0'; // for Opera9.5
+        menu.style.visibility = 'hidden';
         menu.style.width = '0';
         view.style.width = '100%';
         this.isMenuShowing = false;
-        this.currentMenuIndex = -1;
+        this.currentMenuIndex = 0;
+    };
+    WNP.prototype.playToggle = function() {
+        if (this.wnpCore.current.isPlaying) this.stop();
+        else {
+            if (!this.playlistIterator.item) {
+                this.playlistIterator.first();
+            }
+            this.play();
+        }
+    };
+    WNP.prototype.pauseToggle = function() {
+        if (!this.wnpCore.current.isPlaying) {
+            this.playToggle();
+            return;
+        }
+        if (this.wnpCore.current.isPausing) {
+            this.wnpCore.resume();
+        }
+        else {
+            this.wnpCore.pause();
+        }
+        this.updatePauseButton();
+    };
+    WNP.prototype.updatePauseButton = function() {
+        var button = this.wnpWindow.document.getElementById('WNP_C_NICO_PAUSE');
+        if (this.wnpCore.current.isPausing || !this.wnpCore.current.isPlaying) {
+            button.innerHTML = '<img src="' + Consts.WNP_IMAGE_PLAY + '">';
+        }
+        else {
+            button.innerHTML = '<img src="' + Consts.WNP_IMAGE_PAUSE + '">';
+        }
+    };
+    WNP.prototype.commentOnOff = function() {
+        this.applyPreferences({ comment_off: !this.wnpCore.current.isCommentOff });
+        this.showControlPanel();
+    };
+    WNP.prototype.loopOnOff = function() {
+        this.applyPreferences({ loop: !this.prefs.loop });
+    };
+    WNP.prototype.repeatOnOff = function() {
+        this.applyPreferences({ repeat: !this.wnpCore.current.isRepeat });
+        this.showControlPanel();
+    };
+    WNP.prototype.muteOnOff = function() {
+        this.applyPreferences({ mute: !this.wnpCore.current.isMute });
+        this.showControlPanel();
     };
     WNP.prototype.addEx = function(playlist, option) {
         var opt = option || {};
@@ -3124,52 +3417,6 @@ function BUILD_WNP(T) {
         a.href = 'about:blank';
         a.onmouseover = null;
         a.onmouseout = null;
-    };
-    WNP.prototype.playToggle = function() {
-        if (this.wnpCore.current.isPlaying) this.stop();
-        else {
-            if (!this.playlistIterator.item) {
-                this.playlistIterator.first();
-            }
-            this.play();
-        }
-    };
-    WNP.prototype.pauseToggle = function() {
-        if (!this.wnpCore.current.isPlaying) {
-            this.playToggle();
-            return;
-        }
-        if (this.wnpCore.current.isPausing) {
-            this.wnpCore.resume();
-        }
-        else {
-            this.wnpCore.pause();
-        }
-        this.updatePauseButton();
-    };
-    WNP.prototype.updatePauseButton = function() {
-        var button = this.wnpWindow.document.getElementById('WNP_C_NICO_PAUSE');
-        if (this.wnpCore.current.isPausing || !this.wnpCore.current.isPlaying) {
-            button.innerHTML = '<img src="' + Consts.WNP_IMAGE_PLAY + '">';
-        }
-        else {
-            button.innerHTML = '<img src="' + Consts.WNP_IMAGE_PAUSE + '">';
-        }
-    };
-    WNP.prototype.scrollPlaylistTo = function(item) {
-        if (this.scrollSoar != null) {
-            this.scrollSoar.cancel();
-        }
-        var list = this.wnpWindow.document.getElementById('WNP_PLAYLIST_ITEMS');
-        this.scrollSoar = new Soar(list);
-        var allowance = item.offsetHeight; // 1row.
-        this.scrollSoar
-            .to({scrollTop: Math.min(Math.max(item.offsetTop - list.clientTop - allowance, 0), list.scrollHeight - list.clientHeight)})
-            .go(this.wnpWindow);
-        var self = this;
-        this.scrollSoar.addEventListener('finish', function() {
-            self.scrollSoar = null;
-        });
     };
     WNP.prototype.play = function(index) {
         if (this.playingItem) {
@@ -3378,6 +3625,14 @@ function BUILD_WNP(T) {
         }
         this.schedulePlay();
     };
+    WNP.prototype.scheduleItem = function(item) {
+        if (!item) return;
+        if (!this.scheduleIterator) {
+            this.scheduleIterator = new ListElementIterator(this.wnpWindow.document.getElementById('WNP_PLAYLIST_ITEMS'));
+        }
+        this.scheduleIterator.current(item);
+        this.schedulePlay();
+    };
     WNP.prototype.schedulePlay = function() {
         if (!this.scheduleIterator) return;
         var playinfo = createPlayInfo(this.scheduleIterator.item);
@@ -3431,6 +3686,7 @@ function BUILD_WNP(T) {
             wnpCore.detach();
             preloads.remove(videoinfo.id);
         };
+        wnpCore.addEventListener('load', this._wnp_load, false);
         this.wnpWindow.document.getElementById('WNP_VIEW').appendChild(wnpCore.element);
         wnpCore.play(videoinfo);
         wnpCore.pause();
@@ -3750,7 +4006,7 @@ function BUILD_WNP(T) {
                 break;
             case 'use_history' :
                 document.getElementById('WNP_C_PREF_USE_HISTORY').checked = (value == true);
-                document.getElementById('WNP_C_USE_HISTOPRY').checked = (value == true);
+                document.getElementById('WNP_C_USE_HISTORY').checked = (value == true);
                 break;
             case 'skip_deleted_video' :
                 document.getElementById('WNP_C_PREF_SKIP_DELETED_VIDEO').checked = (value == true);
@@ -3769,6 +4025,46 @@ function BUILD_WNP(T) {
                 break;
             default:
                 return;
+        }
+    };
+    WNP.prototype.getDefaultKeybordShortcut = function() {
+        return [
+            { command: 'PlayPause',      key: 'Space' },
+            { command: 'PlayPrev',       key: 'PageUp' },
+            { command: 'PlayNext',       key: 'PageDown' },
+            { command: 'VolumeUp',       key: 'Up' },
+            { command: 'VolumeUp+',      key: 'Up Shift' },
+            { command: 'VolumeDown',     key: 'Down' },
+            { command: 'VolumeDown-',    key: 'Down Shift' },
+            { command: 'SeekForward',    key: 'Right' },
+            { command: 'SeekForward+',   key: 'Right Shift' },
+            { command: 'SeekBackward',   key: 'Left' },
+            { command: 'SeekBackward-',  key: 'Left Shift' },
+            { command: 'SeekBackward--', key: 'Left Ctrl' },
+            { command: 'SelectNextItem',     key: 'j' },
+            { command: 'SelectNextItem',     key: 'Enter' },
+            { command: 'SelectPrevItem',     key: 'k' },
+            { command: 'PlaySelectedItem',   key: 'o' },
+            { command: 'DeleteSelectedItem', key: 'DEL' },
+            { command: 'MenuNext',       key: 's' },
+            { command: 'MenuPrev',       key: 'a' },
+            { command: 'Playlist',       key: 'n' },
+            { command: 'History',        key: 'h' },
+            { command: 'Preference',     key: 'p' },
+            { command: 'Comment',        key: 'c' },
+            { command: 'Loop',           key: 'l' },
+            { command: 'Repeat',         key: 'r' },
+            { command: 'Mute',           key: 'm' },
+            { command: 'Open',           key: 'w' },
+            { command: 'View',           key: 'v' }
+        ]
+    };
+    WNP.prototype.applyKeybordShortcut = function(shortcutList) {
+        if (!shortcutList) return;
+        for (var i = 0; i < shortcutList.length; i++) {
+            var item = shortcutList[i];
+            this.platform.unbindShortcut(item.key);
+            this.platform.bindShortcut(item.command, item.key);
         }
     };
     WNP.open = function(playlist) {
@@ -3834,7 +4130,8 @@ WNP.BUILD_WNP = BUILD_WNP;
             d.open();
             d.write(html);
             try { d.close(); } catch(e) {}
-            w[Consts.WNP_GLOBAL_NAME].initialize(WNP.Prefs);
+            w[Consts.WNP_GLOBAL_NAME].initialize(WNP.PREFS);
+            w.wnp.applyKeybordShortcut(WNP.SHOPRTCUT);
         }
         w.focus();
         return w;
