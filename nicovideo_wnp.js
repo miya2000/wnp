@@ -1355,7 +1355,7 @@ function BUILD_FUNC(T) {
         this.target = null;
         this.listElement.style.cursor = '';
         /*@cc_on
-        this.target.querySelector('.wnp_iecover').style.cursor = '';
+        element.querySelector('.wnp_iecover').style.cursor = '';
         @*/
         this.dispatchEvent({ type: 'dragend', item: element });
     };
@@ -1731,7 +1731,7 @@ function BUILD_FUNC(T) {
      * class KeyBind.
      */
     function KeyBind(target) {
-        this.target = target || window;
+        this.target = target || document;
         this.binds = [];
         this.eventType = (browser.ie || browser.webkit) ? 'keydown' : 'keypress';
     };
