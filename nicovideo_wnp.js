@@ -2979,7 +2979,7 @@ function BUILD_WNP(T) {
             return org_checkValidEvent(e);
         };
         
-        // Bug for Opera10 (could not operate select element's index from script.)
+        // for Opera10's bug (could not operate select element's index from script.)
         setTimeout(function() {
             replace(d.getElementById('WNP_C_PREF_OFFTIMER_MINUTE'));
             replace(d.getElementById('WNP_C_PREF_LOOP_BREAK_COUNT'));
