@@ -630,7 +630,7 @@
         '                    <li><input id="WNP_C_PREF_REMOVE_ON_FINISH" type="checkbox" checked="checked"><label for="WNP_C_PREF_REMOVE_ON_FINISH">' + Lang.PREF_REMOVE_ON_FINISH + '</label></li>',
         '                    <li><input id="WNP_C_PREF_USE_HISTORY" type="checkbox" checked="checked"><label for="WNP_C_PREF_USE_HISTORY">' + Lang.PREF_USE_HISTORY + '</label></li>',
         '                    <li><input id="WNP_C_PREF_SKIP_DELETED_VIDEO" type="checkbox" checked="checked"><label for="WNP_C_PREF_SKIP_DELETED_VIDEO">' + Lang.PREF_SKIP_DELETED_VIDEO + '</label></li>',
-        '                    <li><input id="WNP_C_PREF_USE_OFFTIMER" type="checkbox" checked="checked"><label for="WNP_C_PREF_USE_OFFTIMER">' + Lang.PREF_USE_OFFTIMER + '</label> <select id="WNP_C_PREF_OFFTIMER_MINUTE"><option value="10">10<option value="30">30<option  value="60" selected="selected">60<option value="120">120</select>' + Lang.PREF_MINUTE + '</li>',
+        '                    <li><input id="WNP_C_PREF_USE_OFFTIMER" type="checkbox" checked="checked"><label for="WNP_C_PREF_USE_OFFTIMER">' + Lang.PREF_USE_OFFTIMER + '</label> <select id="WNP_C_PREF_OFFTIMER_MINUTE"><option value="10">10<option value="30">30<option value="60" selected="selected">60<option value="120">120</select>' + Lang.PREF_MINUTE + '</li>',
         '                    <li><input id="WNP_C_PREF_USE_LOOP_BREAK" type="checkbox" checked="checked"><label for="WNP_C_PREF_USE_LOOP_BREAK">' + Lang.PREF_USE_LOOP_BREAK + '</label> <select id="WNP_C_PREF_LOOP_BREAK_COUNT"><option value="0">0<option value="1">1<option value="2">2<option value="3" selected="selected">3<option value="10">10</select>' + Lang.PREF_COUNT + '</li>',
         '                </ul>',
         '                </div>',
@@ -889,6 +889,18 @@ function BUILD_FUNC(T) {
         return document.evaluate(xpath,context||document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;
     }
     T.$XS = $XS;
+    function replace (x, y) {
+        if (!y || x === y) {
+            var p = x.parentNode;
+            var n = x.nextSibling;
+            p.removeChild(x);
+            p.insertBefore(x, n);
+        }
+        else {
+            x.parentNode.replaceChild(y, x);
+        }
+    }
+    T.replace = replace;
     function findVideoTitle(a) {
         var title = '';
         if (!/<script/i.test(a.innerHTML)) {
@@ -1755,7 +1767,6 @@ function BUILD_FUNC(T) {
         'down'      : 40,
         'ins'       : 45,
         'del'       : 46
-        // not support Function keys.
     };
     KeyBind.WHITCH_MAP = {
         'pageup'    : 0,
@@ -1844,7 +1855,7 @@ function BUILD_FUNC(T) {
             var keyCode = KeyBind.KEY_MAP[shortcut.ch];
             var which   = KeyBind.WHITCH_MAP[shortcut.ch];
             if (which == null) which = keyCode;
-            return (e.keyCode || e.charCode) == keyCode && e.which == which;
+            return (e.keyCode || e.charCode) == keyCode && (e.which == which || e.which == null);
         }
         else {
             return shortcut.ch == String.fromCharCode(e.which || e.keyCode).toLowerCase();
@@ -2967,6 +2978,13 @@ function BUILD_WNP(T) {
             if (e.target === clipboard.element || e.target === self._blurInput) return true;
             return org_checkValidEvent(e);
         };
+        
+        // Bug for Opera10 (could not operate select element's index from script.)
+        setTimeout(function() {
+            replace(d.getElementById('WNP_C_PREF_OFFTIMER_MINUTE'));
+            replace(d.getElementById('WNP_C_PREF_LOOP_BREAK_COUNT'));
+            self.applyPreferences();
+        }, 500);
     };
     WNP.prototype.openPrompt = function() {
         var text = this.wnpWindow.prompt(Lang.PLEASE_INPUT_VIDEOID_OR_URL, '');
