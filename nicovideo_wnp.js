@@ -1877,10 +1877,10 @@ function BUILD_FUNC(T) {
             available = _in(keyCode, KeyBind.KEY_MAP.up, KeyBind.KEY_MAP.down);
         }
         else if (nodeName == 'select') {                         
-            available = !_in(keyCode, KeyBind.KEY_MAP.tab, KeyBind.KEY_MAP.enter, KeyBind.KEY_MAP.up, KeyBind.KEY_MAP.down, KeyBind.KEY_MAP.pageup, KeyBind.KEY_MAP.pagedown);
+            available = !_in(keyCode, KeyBind.KEY_MAP.tab, KeyBind.KEY_MAP.enter, KeyBind.KEY_MAP.space, KeyBind.KEY_MAP.up, KeyBind.KEY_MAP.down, KeyBind.KEY_MAP.pageup, KeyBind.KEY_MAP.pagedown);
         }
         else if (_in(nodeName, 'input', 'button')) {
-            available = !_in(keyCode, KeyBind.KEY_MAP.enter, KeyBind.KEY_MAP.space);
+            available = !_in(keyCode, KeyBind.KEY_MAP.tab, KeyBind.KEY_MAP.enter, KeyBind.KEY_MAP.space);
         }
         // It always available if target is hiding.
         if (!available) {
@@ -2881,11 +2881,12 @@ function BUILD_WNP(T) {
         $e(d).addEventListener('keypress', function(e) { if (e.keyCode == 27) e.preventDefault(); }, false); // prevent restore fullscreen. (Please restore by F11.)
         $e(d).addEventListener('keydown', function(e) { if (e.keyCode == 27) escapeKey(e); }, false);
         this.wnpCore.addEventListener('load', this._wnp_load = function(e) {
-            var iframe = self.wnpCore.element.querySelector('.wnp_nicoflame');
+            var wnpCore = this;
+            var iframe = wnpCore.element.querySelector('.wnp_nicoflame');
             $e(iframe.contentWindow).addEventListener('focus', function(e) { 
-                if (self.wnpCore.current.style != WNPCore.STYLE_RESTORE) {
-                    self._blur(); // for firefox, chrome.
-                    setTimeout(function() { self.wnpCore.sight(); }, 10); // for chrome.
+                if (wnpCore.current.style != WNPCore.STYLE_RESTORE) {
+                    self._blur(); // for ie, firefox, chrome.
+                    setTimeout(function() { wnpCore.sight(); }, 10); // for chrome.
                 }
             }, false);
         }, false);
