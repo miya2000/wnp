@@ -1250,7 +1250,7 @@ function BUILD_FUNC(T) {
     T.Soar = Soar;
     /**
      * class ListUtil
-     *   append useful feature(s) to list element.
+     *   append useful features to list element.
      * -- public fields -- *
      * [constructor]
      *   listElement      - target element.
@@ -1258,9 +1258,9 @@ function BUILD_FUNC(T) {
      *   select(item)     - select item.
      *   cancel()         - cancel drag.
      * [propety]
-     *   hoverClass       - append this to hover item's className.
-     *   draggingClass    - append this to dragging item's className.
-     *   selectedClass    - append this to selected item's className.
+     *   hoverColor       - hover item's background-color.
+     *   draggingColor    - dragging item's background-color.
+     *   selectedColor    - selected item's background-color.
      * [event]
      *   select           - fire event when select item.
      *   itemover         - fire event when mouseover item(except dragging).
@@ -1281,8 +1281,8 @@ function BUILD_FUNC(T) {
         this.selectedItems = [];
         this.initEvents();
         this.hoverColor = '#D7EBFF';
-        this.selectedColor = '#B4DAFF';
         this.draggingColor = '#FFCCCC';
+        this.selectedColor = '#B4DAFF';
     };
     ListUtil.prototype.select = function(element) {
         var items = this.selectedItems;
@@ -1745,7 +1745,10 @@ function BUILD_FUNC(T) {
     function KeyBind(target) {
         this.target = target || document;
         this.binds = [];
-        this.eventType = (browser.ie || browser.webkit) ? 'keydown' : 'keypress';
+        this.listeners = {
+            keydown: null,
+            keypress: null
+        };
     };
     KeyBind.KEY_MAP = {
         'backspace' : 8,
@@ -1768,18 +1771,24 @@ function BUILD_FUNC(T) {
         'ins'       : 45,
         'del'       : 46
     };
-    KeyBind.WHITCH_MAP = {
-        'pageup'    : 0,
-        'pagedown'  : 0,
-        'left'      : 0,
-        'up'        : 0,
-        'right'     : 0,
-        'down'      : 0
-    };
     KeyBind.prototype.start = function() {
         var self = this;
-        $e(this.target).addEventListener(this.eventType, this._listener = function(e) {
+        $e(this.target).addEventListener('keydown', this.listeners.keydown = function(e) {
             if (!self.checkValidEvent(e)) return;
+            if (browser.ie || browser.webkit) {
+                if (isControlKey(e)) processKey(e);
+            }
+        }, false);
+        $e(this.target).addEventListener('keypress', this.listeners.keypress = function(e) {
+            if (!self.checkValidEvent(e)) return;
+            if (browser.ie || browser.webkit) {
+                if (!isControlKey(e)) processKey(e);
+            }
+            else {
+                processKey(e);
+            }
+        }, false);
+        function processKey(e) {
             for (var i = 0, binds = self.binds, len = binds.length; i < len; i++) {
                 var shortcut = binds[i];
                 if (self.checkShortcut(shortcut, e)) {
@@ -1787,14 +1796,23 @@ function BUILD_FUNC(T) {
                     shortcut.fn(e);
                 }
             }
-        }, false);
-    };
-    KeyBind.prototype.checkValidEvent = function(e) {
-        return this.target == e.target || !(/^(?:input|textarea|select|button)$/i.test(e.target.nodeName));
+        }
+        function isControlKey(e) {
+            var keyCode = e.keyCode || e.charCode;
+            if (keyCode == KeyBind.KEY_MAP.space) return false;
+            if (keyCode == KeyBind.KEY_MAP.enter) return false;
+            if (e.type == 'keydown' && keyCode >= 112 && keyCode <=135) return true; // function keys.
+            for (var k in KeyBind.KEY_MAP) {
+                if (KeyBind.KEY_MAP[k] == keyCode) return true;
+            }
+            return false;
+        }
     };
     KeyBind.prototype.stop = function() {
-        this.target.removeEventListener(this.eventType, this._listener, false);
-        delete this._listener;
+        this.target.removeEventListener('keydown', this.listeners.keydown, false);
+        this.target.removeEventListener('keypress', this.listeners.keypress, false);
+        this.listeners.keydown = null;
+        this.listeners.keypress = null;
     };
     KeyBind.prototype.clear = function() {
         this.binds = [];
@@ -1841,6 +1859,43 @@ function BUILD_FUNC(T) {
         shortcut.ch = cmds[0];
         return shortcut;
     };
+    KeyBind.prototype.checkValidEvent = function(e) {
+        if (this.target === e.target) return true;
+        var target = e.target;
+        var nodeName = target.nodeName.toLowerCase();
+        var keyCode = e.keyCode || e.charCode;
+        var available = true;
+        // textarea             -> no keys are available.
+        // textfield            -> only up or dowm is available.
+        // select               -> available excludes tab, enter, space, up, down, pageup, pagedown.
+        // other input(buttons) -> available excludes tab, enter, space.
+        // other (body, etc)    -> all keys are available.
+        if (nodeName == 'textarea') {
+            available = false;
+        }
+        else if (nodeName == 'input' && _in(target.type, 'text', 'password', 'file')) {
+            available = _in(keyCode, KeyBind.KEY_MAP.up, KeyBind.KEY_MAP.down);
+        }
+        else if (nodeName == 'select') {                         
+            available = !_in(keyCode, KeyBind.KEY_MAP.tab, KeyBind.KEY_MAP.enter, KeyBind.KEY_MAP.up, KeyBind.KEY_MAP.down, KeyBind.KEY_MAP.pageup, KeyBind.KEY_MAP.pagedown);
+        }
+        else if (_in(nodeName, 'input', 'button')) {
+            available = !_in(keyCode, KeyBind.KEY_MAP.enter, KeyBind.KEY_MAP.space);
+        }
+        // It always available if target is hiding.
+        if (!available) {
+            if (getStyle(target, 'visibility') == 'hidden' || getStyle(target, 'display') == 'none') {
+                available = true;
+            }
+        }
+        return available;
+        function _in (val /*, n1, n2, ..*/) {
+            for (var i = 1; i < arguments.length; i++) {
+                if (val == arguments[i]) return true;
+            }
+            return false;
+        }
+    };
     KeyBind.prototype.checkShortcut = function(shortcut, e) {
         if (shortcut.ch == '*') return true;
         if (/^(?:[0-9A-Za-z]|enter|space)$/.test(shortcut.ch)) {
@@ -1851,14 +1906,21 @@ function BUILD_FUNC(T) {
         }
         if (!!shortcut.alt   != e.altKey ) return false;
         if (!!shortcut.ctrl  != e.ctrlKey) return false;
-        if (KeyBind.KEY_MAP[shortcut.ch] != null) {
-            var keyCode = KeyBind.KEY_MAP[shortcut.ch];
-            var which   = KeyBind.WHITCH_MAP[shortcut.ch];
-            if (which == null) which = keyCode;
-            return (e.keyCode || e.charCode) == keyCode && (e.which == which || e.which == null);
+        var keyCode = e.keyCode || e.charCode;
+        if (shortcut.ch == 'space' && keyCode == KeyBind.KEY_MAP.space) return true;
+        if (shortcut.ch == 'enter' && keyCode == KeyBind.KEY_MAP.enter) return true;
+        if (shortcut.ch == 'backspace' && keyCode == KeyBind.KEY_MAP.backspace) return true;
+        if (e.which == 0 || e.charCode == 0 || e.type == 'keydown') { // control keys.
+            if (KeyBind.KEY_MAP[shortcut.ch] != null) {
+                return keyCode == KeyBind.KEY_MAP[shortcut.ch];
+            }
+            if (/^f\d+$/.test(shortcut.ch)) {
+                return shortcut.ch == ('f' + (keyCode - 111)); // "f1" : 112
+            }
+            return false;
         }
         else {
-            return shortcut.ch == String.fromCharCode(e.which || e.keyCode).toLowerCase();
+            return shortcut.ch == String.fromCharCode(keyCode).toLowerCase();
         }
     };
     T.KeyBind = KeyBind;
@@ -2741,7 +2803,7 @@ function BUILD_WNP(T) {
         this.lastOperationTime = new Date();
         this.lastUpdate = 0;
         this.menuCount = new ListElementIterator(this.wnpWindow.document.getElementById('WNP_MENU_CONTAINER')).count();
-        this.currentMenuIndex = 0;
+        this.currentMenuIndex = null;
         this.menuHide();
     };
     WNP.prototype.build = function() {
@@ -3192,6 +3254,7 @@ function BUILD_WNP(T) {
         }
     };
     WNP.prototype.showMenuItem = function(index) {
+        if (index == null) index = 0;
         if (index < 0) index = 0;
         if (index >= this.menuCount) index = this.menuCount - 1;
         var menuContainer = this.wnpWindow.document.getElementById('WNP_MENU_CONTAINER');
@@ -3228,7 +3291,7 @@ function BUILD_WNP(T) {
         menu.style.width = '0';
         view.style.width = '100%';
         this.isMenuShowing = false;
-        this.currentMenuIndex = 0;
+        this.currentMenuIndex = null;
     };
     WNP.prototype.playToggle = function() {
         if (this.wnpCore.current.isPlaying) this.stop();
