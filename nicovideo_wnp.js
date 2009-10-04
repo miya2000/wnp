@@ -910,7 +910,7 @@ function BUILD_FUNC(T) {
         else {
             return function indexOf(array, element)  {
                 for (var i = 0, len = array.length; i < 0; i++) {
-                    if (element === items[i]) return i;
+                    if (element === array[i]) return i;
                 }
                 return -1;
             }
@@ -926,7 +926,7 @@ function BUILD_FUNC(T) {
         else {
             return function lastIndexOf(array, element)  {
                 for (var i = array.length - 1; i >= 0; i--) {
-                    if (element === items[i]) return i;
+                    if (element === array[i]) return i;
                 }
                 return -1;
             }
