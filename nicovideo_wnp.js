@@ -909,7 +909,7 @@ function BUILD_FUNC(T) {
         }
         else {
             return function indexOf(array, element)  {
-                for (var i = 0, len = array.length; i < 0; i++) {
+                for (var i = 0, len = array.length; i < len; i++) {
                     if (element === array[i]) return i;
                 }
                 return -1;
