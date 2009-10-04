@@ -901,6 +901,38 @@ function BUILD_FUNC(T) {
         }
     }
     T.replace = replace;
+    var indexOf = (function() {
+        if (Array.prototype.indexOf) {
+            return function indexOf(array, element)  {
+                return array.indexOf(element);
+            }
+        }
+        else {
+            return function indexOf(array, element)  {
+                for (var i = 0, len = array.length; i < 0; i++) {
+                    if (element === items[i]) return i;
+                }
+                return -1;
+            }
+        }
+    })();
+    T.indexOf = indexOf;
+    var lastIndexOf = (function() {
+        if (Array.prototype.lastIndexOf) {
+            return function lastIndexOf(array, element)  {
+                return array.lastIndexOf(element);
+            }
+        }
+        else {
+            return function lastIndexOf(array, element)  {
+                for (var i = array.length - 1; i >= 0; i--) {
+                    if (element === items[i]) return i;
+                }
+                return -1;
+            }
+        }
+    })();
+    T.lastIndexOf = lastIndexOf;
     function findVideoTitle(a) {
         var title = '';
         if (!/<script/i.test(a.innerHTML)) {
@@ -990,7 +1022,7 @@ function BUILD_FUNC(T) {
     }
     T.createPlayInfoFromUrl = createPlayInfoFromUrl;
     var makeNicoLinks = (function() {
-        var makeNicoReg = /(https?:\/\/[-_.!~*()a-zA-Z0-9;\/?:@&=+$,%#]+)|([a-z]{2}\d+)|(mylist\/\d+)|(^|\D)(\d{10})(?!\d)/mg;
+        var makeNicoReg = /(https?:\/\/[-_.!~*()a-zA-Z0-9;\/?:@&=+$,%#]+)|\b([a-z]{2}\d+)|(mylist\/\d+)|(^|\D)(\d{10})(?!\d)/mg;
         return function makeNicoLinks(str) {
             return str.replace(makeNicoReg, function(str, $1, $2, $3, $4, $5){
                 if ($1) return ' <a href="' + $1 + '" target="_blank">' + $1 + '</a> ';
@@ -1134,7 +1166,7 @@ function BUILD_FUNC(T) {
             if (c) do { c = c.nextSibling } while (c && c.nodeType != 1);
             return this.current(c);
         },
-        previous : function(item) {
+        prev : function(item) {
             var c = item || this.item;
             if (c) do { c = c.previousSibling } while (c && c.nodeType != 1);
             return this.current(c);
@@ -1257,12 +1289,13 @@ function BUILD_FUNC(T) {
      * [method]
      *   select(item)     - select item.
      *   cancel()         - cancel drag.
+     *   getSelectedItems() - get selected items.
      * [propety]
      *   hoverColor       - hover item's background-color.
      *   draggingColor    - dragging item's background-color.
      *   selectedColor    - selected item's background-color.
      * [event]
-     *   select           - fire event when select item.
+     *   selectioncanged  - fire event when select item.
      *   itemover         - fire event when mouseover item(except dragging).
      *   itemout          - fire event when mouseout item(except dragging).
      *   dragstart        - fire event when drag start.
@@ -1278,65 +1311,155 @@ function BUILD_FUNC(T) {
     EventDispatcher.initialize(ListUtil.prototype);
     ListUtil.prototype.initialize = function(listElement) {
         this.listElement = listElement;
-        this.selectedItems = [];
         this.initEvents();
         this.hoverColor = '#D7EBFF';
         this.draggingColor = '#FFCCCC';
         this.selectedColor = '#B4DAFF';
+        this.current = {
+            selectedItems   : [],
+            isMouseDown     : false,
+            mouseDownItem   : null,
+            mouseDownPoint  : null,
+            isDragging      : false,
+            dragTargetItem  : null,
+            dragTargetImage : null,
+            dropTargetItem  : null,
+            hoveringItem    : null
+        };
     };
-    ListUtil.prototype.select = function(element) {
-        var items = this.selectedItems;
+    ListUtil.prototype.select = function(element, option) {
+        var opt = option || {};
+        var items = this.current.selectedItems;
         for (var i = 0, len = items.length; i < len; i++) {
             var item = items[i];
             item.style.backgroundColor = '';
-            if (item === this.hoverItem) {
+            if (item === this.current.hoveringItem) {
                 item.style.backgroundColor = this.hoverColor;
             }
         }
-        if (!element) return;
-        this.selectedItems = [element];
-        var items = this.selectedItems;
-        for (var i = 0, len = items.length; i < len; i++) {
-            var item = items[i];
-            item.style.backgroundColor = this.selectedColor;
-        }
-        this.dispatchEvent({ type: 'select' });
-    };
-    ListUtil.prototype.itemOver = function(element) {
-        var items = this.selectedItems;
-        var selected = false;
-        for (var i = 0, len = items.length; i < len; i++) {
-            var item = items[i];
-            if (item === element) {
-                selected = true;
-                break;
+        if (element) {
+            this.current.selectedItems = getSelection.call(this, element);
+            var items = this.current.selectedItems;
+            for (var i = 0, len = items.length; i < len; i++) {
+                var item = items[i];
+                item.style.backgroundColor = this.selectedColor;
             }
         }
-        if (!selected) element.style.backgroundColor = this.hoverColor;
+        if (option) { // call from outer.
+            this.dispatchEvent({ type: 'selectioncanged', lastSelectedItem: (this.current.selectedItems.length > 0 ? this.current.lastSelectedItem : null) });
+        }
+        function getSelection(element) {
+            // if no modifyer key pressed, select exclusive.
+            if (!opt.ctrl && !opt.shift) {
+                this.current.lastSelectedItem = element;
+                return [element];
+            }
+            // toggle select.
+            if (opt.ctrl && !opt.shift) {
+                var next = cleanupSelection.call(this);
+                var li = lastIndexOf(next, element);
+                if (li < 0) next.push(element);
+                else        next.splice(li, 1);
+                this.current.lastSelectedItem = element;
+                return next;
+            }
+            // range select
+            if (opt.shift) {
+                var lastSelectedItem = this.current.lastSelectedItem;
+                if (!lastSelectedItem || lastSelectedItem === element) {
+                    return [element];
+                }
+                var items = (opt.ctrl ? cleanupSelection.call(this) : []);
+                var next = items.concat();
+                var itr = new ListElementIterator(this.listElement).first();
+                var inRange = false, isEdge  = false;
+                while (itr.item) {
+                    var item = itr.item;
+                    if (item == lastSelectedItem || item == element) {
+                        isEdge = true; inRange = !inRange;
+                    }
+                    else {
+                        isEdge = false;
+                    }
+                    if (inRange || isEdge) {
+                        if (lastIndexOf(items, item) < 0) next.push(item);
+                    }
+                    itr.next();
+                }
+                return next;
+            }
+        }
+        function cleanupSelection() {
+            var next = [];
+            var items = this.current.selectedItems;
+            for (var i = 0, len = items.length; i < len; i++) {
+                var item = items[i];
+                if (item && item.parentNode === this.listElement) next.push(item);
+            }
+            return next;
+        };
+    };
+    ListUtil.prototype.selectAll = function() {
+        var itr = new ListElementIterator(this.listElement).first();
+        var items = [];
+        while (itr.item) {
+            var item = itr.item;
+            items.push(item);
+            item.style.backgroundColor = this.selectedColor;
+            itr.next();
+        }
+        this.current.selectedItems = items;
+        this.dispatchEvent({ type: 'selectioncanged', lastSelectedItem: this.current.selectedItems[0] });
+    };
+    ListUtil.prototype.isSelectedItem = function(element) {
+        var items = this.current.selectedItems;
+        for (var i = 0, len = items.length; i < len; i++) {
+            if (items[i] === element) return true;
+        }
+        return false;
+    };
+    ListUtil.prototype.getSelectedItems = function() {
+        var next = [];
+        var items = this.current.selectedItems;
+        for (var i = 0, len = items.length; i < len; i++) {
+            var item = items[i];
+            if (item && item.parentNode === this.listElement) next.push(item);
+        }
+        this.current.selectedItems = next;
+        if (next.length <= 1) return next.concat();
+        // sort. (slow?)
+        var next = [];
+        var items = this.current.selectedItems;
+        var itr = new ListElementIterator(this.listElement).first();
+        while (itr.item) {
+            if (indexOf(items, itr.item) >= 0) next.push(itr.item);
+            itr.next();
+        }
+        this.current.selectedItems = next;
+        return next.concat();
+    };
+    ListUtil.prototype.itemOver = function(element) {
+        if (!this.isSelectedItem(element)) element.style.backgroundColor = this.hoverColor;
         this.dispatchEvent({ type: 'itemover', item: element });
     };
     ListUtil.prototype.itemOut = function(element) {
-        var items = this.selectedItems;
-        for (var i = 0, len = items.length; i < len; i++) {
-            var item = items[i];
-            if (item === element) return;
-        }
+        if (this.isSelectedItem(element)) return;
         element.style.backgroundColor = '';
         this.dispatchEvent({ type: 'itemout', item: element });
     };
     ListUtil.prototype.dragStart = function(element) {
-        if (this.target) {
-            this.target.style.backgroundColor = '';
+        if (this.current.dragTargetItem) {
+            this.current.dragTargetItem.style.backgroundColor = '';
         }
-        if (this.dropTargetItem) {
-            this.dropTargetItem.style.background = '';
+        if (this.current.dropTargetItem) {
+            this.current.dropTargetItem.style.background = '';
         }
-        this.target = element;
-        this.target.style.backgroundColor = this.draggingColor;
-        this.targetImage = this.target.querySelector('img.thumbnail').src;
+        this.current.dragTargetItem = element;
+        this.current.dragTargetItem.style.backgroundColor = this.draggingColor;
+        this.current.dragTargetImage = this.current.dragTargetItem.querySelector('img.thumbnail').src;
         this.listElement.style.cursor = 'move';
         /*@cc_on
-        this.target.querySelector('.wnp_iecover').style.cursor = 'move';
+        this.current.dragTargetItem.querySelector('.wnp_iecover').style.cursor = 'move';
         @*/
         this.dispatchEvent({ type: 'dragstart' });
     };
@@ -1344,27 +1467,48 @@ function BUILD_FUNC(T) {
         this.dispatchEvent({ type: 'dragging' });
     };
     ListUtil.prototype.dragOver = function(element) {
-        if (this.dropTargetItem && this.dropTargetItem !== this.target) {
-            this.dropTargetItem.style.background = '';
+        if (this.current.dropTargetItem && this.current.dropTargetItem !== this.current.dragTargetItem) {
+            this.current.dropTargetItem.style.backgroundImage = '';
+            this.current.dropTargetItem.style.backgroundPosition = '';
+            this.current.dropTargetItem.style.backgroundRepeat = '';
         }
-        this.dropTargetItem = element;
-        if (this.dropTargetItem !== this.target) {
-            this.dropTargetItem.style.background = 'url("' + this.targetImage + '") no-repeat center top';
+        this.current.dropTargetItem = element;
+        if (this.current.dropTargetItem !== this.current.dragTargetItem) {
+            this.current.dropTargetItem.style.backgroundImage = 'url("' + this.current.dragTargetImage + '")';
+            this.current.dropTargetItem.style.backgroundPosition = 'center top';
+            this.current.dropTargetItem.style.backgroundRepeat = 'no-repeat';
         }
         this.dispatchEvent({ type: 'dragover', item: element });
     };
     ListUtil.prototype.dragEnd = function() {
-        var element = this.target;
-        this.target.style.backgroundColor = this.selectedColor;
-        if (this.dropTargetItem) {
-            if (this.dropTargetItem !== this.target) {
-                this.dropTargetItem.style.background = '';
-                for (var p = this.dropTargetItem; p && p !== this.target; p = p.previousSibling);
-                this.dropTargetItem.parentNode.insertBefore(this.target,  (p) ? this.dropTargetItem.nextSibling : this.dropTargetItem);
+        var element = this.current.dragTargetItem;
+        this.current.dragTargetItem.style.backgroundColor = this.selectedColor;
+        if (this.current.dropTargetItem) {
+            if (this.current.dropTargetItem !== this.current.dragTargetItem) {
+                var document =  this.listElement.ownerDocument;
+                for (var p = this.current.dropTargetItem; p && p !== this.current.dragTargetItem; p = p.previousSibling);
+                var downTo = !!p;
+                var items = this.getSelectedItems();
+                var dropPlace;
+                if (indexOf(items, this.current.dropTargetItem) < 0) {
+                    this.current.dropTargetItem.style.background = '';
+                    dropPlace = this.current.dropTargetItem;
+                }
+                else {
+                    this.current.dropTargetItem.style.background = this.selectedColor;
+                    dropPlace = document.createTextNode('');
+                    this.listElement.insertBefore(dropPlace, this.current.dropTargetItem);
+                }
+                var df = document.createDocumentFragment();
+                for (var i = 0; i < items.length; i++) {
+                    df.appendChild(items[i]);
+                }
+                this.listElement.insertBefore(df, downTo ? dropPlace.nextSibling : dropPlace);
+                if (dropPlace.nodeType == 3) dropPlace.parentNode.removeChild(dropPlace);
             }
-            this.dropTargetItem = null;
+            this.current.dropTargetItem = null;
         }
-        this.target = null;
+        this.current.dragTargetItem = null;
         this.listElement.style.cursor = '';
         /*@cc_on
         element.querySelector('.wnp_iecover').style.cursor = '';
@@ -1372,11 +1516,12 @@ function BUILD_FUNC(T) {
         this.dispatchEvent({ type: 'dragend', item: element });
     };
     ListUtil.prototype.dragCancel = function() {
-        if (this.dropTargetItem) {
-            this.dropTargetItem.style.background = '';
+        if (this.current.dropTargetItem) {
+            this.current.dropTargetItem.style.background = '';
+            this.current.dropTargetItem = null;
         }
-        this.target.style.backgroundColor = this.selectedColor;
-        this.target = null;
+        this.current.dragTargetItem.style.backgroundColor = this.selectedColor;
+        this.current.dragTargetItem = null;
         this.listElement.style.cursor = '';
         this.dispatchEvent({ type: 'dragcancel' });
     };
@@ -1390,8 +1535,8 @@ function BUILD_FUNC(T) {
         return proxy;
     };
     ListUtil.prototype.cancel = function() {
-        if (!this.isDragging) return;
-        this.isDragging = false;
+        if (!this.current.isDragging) return;
+        this.current.isDragging = false;
         this.scrollingCancel();
         this.dragCancel();
     };
@@ -1410,13 +1555,23 @@ function BUILD_FUNC(T) {
         };
         $e(document).addEventListener('keydown', this.event_keydown = function(e) {
             if (e.keyCode === 27) {
+                self.current.isMouseDown = false;
+                self.current.mouseDownItem = null;
+                self.current.mouseDownPoint = null;
                 self.cancel();
+            }
+            if (e.ctrlKey && String.fromCharCode(e.keyCode || e.charCode).toLowerCase() == 'a') {
+                if (getStyle(self.listElement, 'visibility') == 'hidden' || getStyle(self.listElement, 'display') == 'none') {
+                    return;
+                }
+                self.selectAll();
             }
         }, false);
         $e(document).addEventListener('mouseup', this.event_document_mouseup = function(e) {
+            self.current.isMouseDown = false;
             self.scrollingCancel();
-            if (self.isDragging) {
-                self.isDragging = false;
+            if (self.current.isDragging) {
+                self.current.isDragging = false;
                 var pos = getAbsolutePosition(self.listElement);
                 pos.x += self.listElement.clientLeft;
                 pos.y += self.listElement.clientTop;
@@ -1427,9 +1582,24 @@ function BUILD_FUNC(T) {
                     self.dragCancel();
                 }
             }
+            if (self.current.keyupSelect) {
+                self.current.keyupSelect = false;
+                self.select(self.current.mouseDownItem, { ctrl : false, shift : false });
+            }
+            self.current.mouseDownItem = null;
+            self.current.mouseDownPoint = null;
         }, false);
         $e(document).addEventListener('mousemove', this.event_document_mousemove = function(e) {
-            if (self.isDragging) {
+            if (!self.current.isDragging && self.current.isMouseDown && self.current.mouseDownItem) {
+                var point = self.current.mouseDownPoint;
+                var r = 2;
+                if (e.pageX < point.x - r || e.pageX > point.x + r || e.pageY < point.y - r || e.pageY > point.y + r) {
+                    self.current.isDragging = true;
+                    self.dragStart(self.current.mouseDownItem);
+                    self.current.keyupSelect = false;
+                }
+            }
+            if (self.current.isDragging) {
                 e.preventDefault();
                 if (e.clientY < (self.listElement.offsetTop + 25)) {
                     // scroll up
@@ -1466,16 +1636,22 @@ function BUILD_FUNC(T) {
             }
         }, false);
         $e(this.listElement).addEventListener('mousedown', this.event_element_mousedown = function(e) {
+            self.current.isMouseDown = true;
             if (e.target === e.currentTarget) return;
             var item = e.target;
             while (item.parentNode !== e.currentTarget) item = item.parentNode;
             e.preventDefault();
-            self.select(item);
-            self.isDragging = true;
-            self.dragStart(item);
+            self.current.mouseDownItem = item;
+            self.current.mouseDownPoint = { x: e.pageX, y: e.pageY };
+            if (self.current.selectedItems.length > 1 && !e.ctrlKey && !e.shiftKey && self.isSelectedItem(item)) {
+                self.current.keyupSelect = true;
+            }
+            else {
+                self.select(item, { ctrl : e.ctrlKey, shift : e.shiftKey });
+            }
         }, false);
         $e(this.listElement).addEventListener('mouseover', this.event_element_mouseover = function(e) {
-            if (!self.isDragging) {
+            if (!self.current.isDragging) {
                 // disable mousedown event on an inline element. (and enable link drag on Opera)
                 if (e.target === e.currentTarget || /^(a|span|img|input|select|button|object|embed|iframe)$/i.test(e.target.nodeName)) {
                     $e(self.listElement).removeEventListener('mousedown', self.event_element_mousedown, false);
@@ -1490,7 +1666,7 @@ function BUILD_FUNC(T) {
                 @*/
             }
             /*@cc_on
-            if (self.isDragging) {
+            if (self.current.isDragging) {
                 e.preventDefault();
             }
             @*/
@@ -1498,9 +1674,9 @@ function BUILD_FUNC(T) {
                 var item = e.target;
                 while (item && item.parentNode !== e.currentTarget) item = item.parentNode;
                 if (!item) return;
-                if (item !== self.hoverItem) {
-                    self.hoverItem = item;
-                    if (self.isDragging) {
+                if (item !== self.current.hoveringItem) {
+                    self.current.hoveringItem = item;
+                    if (self.current.isDragging) {
                         self.dragOver(item);
                     }
                     else {
@@ -1510,18 +1686,24 @@ function BUILD_FUNC(T) {
             }
         }, false);
         $e(this.listElement).addEventListener('mouseout', this.event_element_mouseout = function(e) {
-            if (self.hoverItem) {
-                var currentItem = self.hoverItem;
+            if (self.current.hoveringItem) {
+                var currentItem = self.current.hoveringItem;
                 var item = e.relatedTarget;
-                while (item && item !== self.hoverItem) item = item.parentNode;
-                if (item !== self.hoverItem) {
-                    self.hoverItem = null;
-                    if (!self.isDragging) {
+                while (item && item !== self.current.hoveringItem) item = item.parentNode;
+                if (item !== self.current.hoveringItem) {
+                    self.current.hoveringItem = null;
+                    if (!self.current.isDragging) {
                         self.itemOut(currentItem);
                     }
                 }
             }
         }, false);
+        $e(this.listElement).addEventListener('click', this.event_element_click = function(e) {
+            if (e.ctrlKey || e.shiftKey) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        }, true);
     };
     T.ListUtil = ListUtil;
     /**
@@ -1749,6 +1931,7 @@ function BUILD_FUNC(T) {
             keydown: null,
             keypress: null
         };
+        this.allowFilter = [];
     };
     KeyBind.KEY_MAP = {
         'backspace' : 8,
@@ -1773,16 +1956,25 @@ function BUILD_FUNC(T) {
     };
     KeyBind.prototype.start = function() {
         var self = this;
+        var isControlKindKey = false;
         $e(this.target).addEventListener('keydown', this.listeners.keydown = function(e) {
-            if (!self.checkValidEvent(e)) return;
-            if (browser.ie || browser.webkit) {
-                if (isControlKey(e)) processKey(e);
+            isControlKindKey = checkControlKindKey(e);
+            if (!browser.opera) {
+                if (!checkEventTarget(e) && !checkAllowFilter(e)) return;
+                if (isControlKindKey) {
+                    processKey(e);
+                }
+                else if (browser.ie || browser.webkit) {
+                    if (e.ctrlKey || e.altKey) {
+                        processKey(e);
+                    }
+                }
             }
         }, false);
         $e(this.target).addEventListener('keypress', this.listeners.keypress = function(e) {
-            if (!self.checkValidEvent(e)) return;
-            if (browser.ie || browser.webkit) {
-                if (!isControlKey(e)) processKey(e);
+            if (!checkEventTarget(e) && !checkAllowFilter(e)) return;
+            if (!browser.opera) {
+                if (!isControlKindKey) processKey(e);
             }
             else {
                 processKey(e);
@@ -1791,19 +1983,63 @@ function BUILD_FUNC(T) {
         function processKey(e) {
             for (var i = 0, binds = self.binds, len = binds.length; i < len; i++) {
                 var shortcut = binds[i];
-                if (self.checkShortcut(shortcut, e)) {
+                if (self.checkShortcut(shortcut, e, isControlKindKey)) {
                     e.preventDefault();
                     shortcut.fn(e);
                 }
             }
         }
-        function isControlKey(e) {
-            var keyCode = e.keyCode || e.charCode;
+        function checkControlKindKey(e) {
+            var keyCode = e.keyCode;
             if (keyCode == KeyBind.KEY_MAP.space) return false;
             if (keyCode == KeyBind.KEY_MAP.enter) return false;
-            if (e.type == 'keydown' && keyCode >= 112 && keyCode <=135) return true; // function keys.
+            if (keyCode >= 112 && keyCode <=135) return true; // function keys.
             for (var k in KeyBind.KEY_MAP) {
                 if (KeyBind.KEY_MAP[k] == keyCode) return true;
+            }
+            return false;
+        }
+        function checkEventTarget(e) {
+            if (this.target === e.target) return true;
+            var target = e.target;
+            var nodeName = target.nodeName.toLowerCase();
+            var keyCode = e.keyCode || e.charCode;
+            var available = true;
+            // textarea             -> no keys are available.
+            // textfield            -> only up or dowm is available.
+            // select               -> available excludes tab, enter, space, up, down, pageup, pagedown.
+            // other input(buttons) -> available excludes tab, enter, space.
+            // other (body, etc)    -> all keys are available.
+            if (nodeName == 'textarea') {
+                available = false;
+            }
+            else if (nodeName == 'input' && _in(target.type, 'text', 'password', 'file')) {
+                available = isControlKindKey && _in(keyCode, KeyBind.KEY_MAP.up, KeyBind.KEY_MAP.down);
+            }
+            else if (nodeName == 'select') {
+                available = !_in(keyCode, KeyBind.KEY_MAP.space, KeyBind.KEY_MAP.enter) && !(isControlKindKey && _in(keyCode, KeyBind.KEY_MAP.tab, KeyBind.KEY_MAP.up, KeyBind.KEY_MAP.down, KeyBind.KEY_MAP.pageup, KeyBind.KEY_MAP.pagedown));
+            }
+            else if (_in(nodeName, 'input', 'button')) {
+                available = !_in(keyCode, KeyBind.KEY_MAP.space, KeyBind.KEY_MAP.enter) && !(isControlKindKey && _in(keyCode, KeyBind.KEY_MAP.tab));
+            }
+            // always available if target is hiding.
+            if (!available) {
+                if (getStyle(target, 'visibility') == 'hidden' || getStyle(target, 'display') == 'none') {
+                    available = true;
+                }
+            }
+            return available;
+        }
+        function _in (val /*, n1, n2, ..*/) {
+            for (var i = 1; i < arguments.length; i++) {
+                if (val == arguments[i]) return true;
+            }
+            return false;
+        }
+        function checkAllowFilter(e) {
+            var filters = self.allowFilter;
+            for (var i = 0, len = filters.length; i < len; i++) {
+                if (filters[i](e)) return true;
             }
             return false;
         }
@@ -1847,6 +2083,9 @@ function BUILD_FUNC(T) {
             this.binds = newBinds;
         }
     };
+    KeyBind.prototype.addAllowFilter = function(func) {
+        this.allowFilter.push(func);
+    };
     KeyBind.prototype.parseShortcut = function(str) {
         var shortcut = {};
         var cmds = str.toLowerCase().split(/\s+/);
@@ -1859,44 +2098,7 @@ function BUILD_FUNC(T) {
         shortcut.ch = cmds[0];
         return shortcut;
     };
-    KeyBind.prototype.checkValidEvent = function(e) {
-        if (this.target === e.target) return true;
-        var target = e.target;
-        var nodeName = target.nodeName.toLowerCase();
-        var keyCode = e.keyCode || e.charCode;
-        var available = true;
-        // textarea             -> no keys are available.
-        // textfield            -> only up or dowm is available.
-        // select               -> available excludes tab, enter, space, up, down, pageup, pagedown.
-        // other input(buttons) -> available excludes tab, enter, space.
-        // other (body, etc)    -> all keys are available.
-        if (nodeName == 'textarea') {
-            available = false;
-        }
-        else if (nodeName == 'input' && _in(target.type, 'text', 'password', 'file')) {
-            available = _in(keyCode, KeyBind.KEY_MAP.up, KeyBind.KEY_MAP.down);
-        }
-        else if (nodeName == 'select') {                         
-            available = !_in(keyCode, KeyBind.KEY_MAP.tab, KeyBind.KEY_MAP.enter, KeyBind.KEY_MAP.space, KeyBind.KEY_MAP.up, KeyBind.KEY_MAP.down, KeyBind.KEY_MAP.pageup, KeyBind.KEY_MAP.pagedown);
-        }
-        else if (_in(nodeName, 'input', 'button')) {
-            available = !_in(keyCode, KeyBind.KEY_MAP.tab, KeyBind.KEY_MAP.enter, KeyBind.KEY_MAP.space);
-        }
-        // It always available if target is hiding.
-        if (!available) {
-            if (getStyle(target, 'visibility') == 'hidden' || getStyle(target, 'display') == 'none') {
-                available = true;
-            }
-        }
-        return available;
-        function _in (val /*, n1, n2, ..*/) {
-            for (var i = 1; i < arguments.length; i++) {
-                if (val == arguments[i]) return true;
-            }
-            return false;
-        }
-    };
-    KeyBind.prototype.checkShortcut = function(shortcut, e) {
+    KeyBind.prototype.checkShortcut = function(shortcut, e, isControlKindKey) {
         if (shortcut.ch == '*') return true;
         if (/^(?:[0-9A-Za-z]|enter|space)$/.test(shortcut.ch)) {
             if (!!shortcut.shift != e.shiftKey) return false;
@@ -1907,21 +2109,15 @@ function BUILD_FUNC(T) {
         if (!!shortcut.alt   != e.altKey ) return false;
         if (!!shortcut.ctrl  != e.ctrlKey) return false;
         var keyCode = e.keyCode || e.charCode;
-        if (shortcut.ch == 'space' && keyCode == KeyBind.KEY_MAP.space) return true;
-        if (shortcut.ch == 'enter' && keyCode == KeyBind.KEY_MAP.enter) return true;
-        if (shortcut.ch == 'backspace' && keyCode == KeyBind.KEY_MAP.backspace) return true;
-        if (e.which == 0 || e.charCode == 0 || e.type == 'keydown') { // control keys.
-            if (KeyBind.KEY_MAP[shortcut.ch] != null) {
-                return keyCode == KeyBind.KEY_MAP[shortcut.ch];
-            }
-            if (/^f\d+$/.test(shortcut.ch)) {
-                return shortcut.ch == ('f' + (keyCode - 111)); // "f1" : 112
-            }
-            return false;
+        if (shortcut.ch == 'space') return keyCode == KeyBind.KEY_MAP.space;
+        if (shortcut.ch == 'enter') return keyCode == KeyBind.KEY_MAP.enter;
+        if (KeyBind.KEY_MAP[shortcut.ch] != null) {
+            return keyCode == KeyBind.KEY_MAP[shortcut.ch] && isControlKindKey;
         }
-        else {
-            return shortcut.ch == String.fromCharCode(keyCode).toLowerCase();
+        if (/^f\d+$/.test(shortcut.ch)) {
+            return shortcut.ch == ('f' + (keyCode - 111)) && isControlKindKey; // "f1" : 112
         }
+        return shortcut.ch == String.fromCharCode(keyCode).toLowerCase() && !isControlKindKey;
     };
     T.KeyBind = KeyBind;
     /**
@@ -2634,7 +2830,7 @@ function BUILD_WNP(T) {
                 if (!flvplayer) return;
                 try {
                     var status = flvplayer.ext_getStatus();
-                    if (status == 'playing' || status == 'paused' || (status == 'stopped' && Number(flvplayer.ext_getLoadedRatio()) >= 0.1)) {
+                    if (status == 'playing' || status == 'paused' || ((status == 'stopped' || status == 'load') && Number(flvplayer.ext_getLoadedRatio()) >= 0.1)) {
                         flvplayer.ext_setMute(1); // cut first noise.
                         flvplayer.ext_play(1);
                     }
@@ -2964,9 +3160,11 @@ function BUILD_WNP(T) {
             d.getElementById('WNP_MENU_SLIDER').style.backgroundColor = '#696969';
             d.body.style.cursor = 'e-resize';
         }, true, true);
-        bindEventFunc(d, 'mousedown', function(e) {
+        /*@cc_on
+        bindEventFunc(d, 'mousemove', function(e) {
             if (self.isSliding) e.preventDefault(); // for ie.
         });
+        @*/
         bindEventFunc(d, 'mouseup', function(e) {
             if (!self.isSliding) return;
             self.isSliding = false;
@@ -3001,8 +3199,8 @@ function BUILD_WNP(T) {
         listUtil.addEventListener('dragend', function() {
             self.updatePlaylistURI();
         });
-        listUtil.addEventListener('select', function() {
-            self.selectionIterator.current(listUtil.selectedItems[0]);
+        listUtil.addEventListener('selectioncanged', function(e) {
+            self.selectionIterator.current(e.lastSelectedItem);
         });
         listUtil.addEventListener('itemover', function(e) {
             var playinfo = createPlayInfo(e.item);
@@ -3036,11 +3234,9 @@ function BUILD_WNP(T) {
                 self.addEx(playlist, { start: !self.wnpCore.current.isPlaying });
             }
         };
-        var org_checkValidEvent = platform.keyBinds[''].checkValidEvent;
-        platform.keyBinds[''].checkValidEvent = function(e) {
-            if (e.target === clipboard.element || e.target === self._blurInput) return true;
-            return org_checkValidEvent(e);
-        };
+        platform.keyBinds[''].addAllowFilter(function(e) {
+            return e.target === clipboard.element || e.target === self._blurInput;
+        });
         
         // for Opera10's bug (could not operate select element's index from script.)
         setTimeout(function() {
@@ -3072,7 +3268,7 @@ function BUILD_WNP(T) {
             this.selectionIterator.current(this.playlistIterator.item).isNullThenFirst();
         }
         else {
-            this.selectionIterator.previous().isNullThenLast();
+            this.selectionIterator.prev().isNullThenLast();
         }
         if (this.selectionIterator.item == null) return;
         this.listUtil.select(this.selectionIterator.item);
@@ -3082,14 +3278,20 @@ function BUILD_WNP(T) {
         this.scheduleItem(this.selectionIterator.item);
     };
     WNP.prototype.deleteSelectedItem = function() {
-        if (this.selectionIterator && this.selectionIterator.item) {
-            var item = this.selectionIterator.item;
-            this.selectionIterator.next();
+        if (!this.isMenuShowing || this.currentMenuIndex != 0) return;
+        var items = this.listUtil.getSelectedItems();
+        for (var i = 0, len = items.length; i < len; i++) {
+            var item = items[i];
+            if (this.selectionIterator.item === item) {
+                this.selectionIterator.next();
+            }
             this.remove(item);
-            this.selectionIterator.isNullThenLast();
-            this.listUtil.select(this.selectionIterator.item);
-            this.scrollPlaylistTo(this.selectionIterator.item);
         }
+        this.selectionIterator.isNullThenLast();
+        if (this.selectionIterator.item) {
+            this.listUtil.select(this.selectionIterator.item);
+        }
+        this.scrollPlaylistTo(this.selectionIterator.item);
     };
     WNP.prototype.scrollPlaylistTo = function(item) {
         if (!item) return;
@@ -3455,7 +3657,9 @@ function BUILD_WNP(T) {
         return li;
     };
     WNP.prototype.clear = function() {
-        this.playlist = {items: [], video: {}, title: {}, image: {} };
+        this.playlist = { items: [], video: {}, title: {}, image: {} };
+        this.playlistIterator.current(null);
+        this.selectionIterator.current(null);
         var ul = this.wnpWindow.document.getElementById('WNP_PLAYLIST_ITEMS');
         while(ul.lastChild) ul.removeChild(ul.lastChild);
         this.updatePlaylistURI();
@@ -3468,7 +3672,7 @@ function BUILD_WNP(T) {
                 // cutting corners.
                 var dummy = this.wnpWindow.document.createTextNode('');
                 ul.insertBefore(dummy, item);
-                this.playlistIterator.current(dummy)
+                this.playlistIterator.current(dummy);
             }
             ul.removeChild(item);
         }
@@ -3506,7 +3710,7 @@ function BUILD_WNP(T) {
         var currentItem = this.playlistIterator.item;
         var itr = new ListElementIterator(wnpDocument.getElementById('WNP_PLAYLIST_ITEMS'));
         var button = wnpDocument.getElementById('WNP_C_PREV');
-        if (itr.previous(currentItem).item) {
+        if (itr.prev(currentItem).item) {
             var playinfo = createPlayInfo(itr.item);
             this.bindVideoInfo(button, playinfo.video[playinfo.items[0]], playinfo.title[playinfo.items[0]]);
         }
@@ -3717,7 +3921,7 @@ function BUILD_WNP(T) {
         this.wnpWindow.document.getElementById('WNP_C_NICO_SEEKBAR').firstChild.firstChild.style.width = '0';
     };
     WNP.prototype.prev = function() {
-        this.playlistIterator.previous();
+        this.playlistIterator.prev();
         this.play();
     };
     WNP.prototype.next = function() {
@@ -3730,7 +3934,7 @@ function BUILD_WNP(T) {
             this.scheduleIterator = new ListElementIterator(this.wnpWindow.document.getElementById('WNP_PLAYLIST_ITEMS'));
             this.scheduleIterator.current(this.playlistIterator.item);
         }
-        this.scheduleIterator.previous().isNullThenFirst();
+        this.scheduleIterator.prev().isNullThenFirst();
         this.schedulePlay();
     };
     WNP.prototype.scheduleNext = function() {
