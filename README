@@ -1,4 +1,4 @@
-windowised nicovideo player (wnp) is User JavaScript for Opera (or Firefox or other).
+windowised nicovideo player (wnp) is a User JavaScript for Opera (or Firefox or other).
 This script can play niconico douga with popup window, supports playlist, etc. 
 
 --
@@ -9,3 +9,5 @@ This script work on
   Safari 4.x
   ie 8.x
 --
+
+"nicovideo_wnp.js" and "nicovideo_wnp.user.js" are the same files.
