@@ -219,6 +219,7 @@
         PREF_MINUTE : '\u5206',
         PREF_USE_LOOP_BREAK : '\u30EB\u30FC\u30D7\u3059\u308B\u52D5\u753B\u3092\u6307\u5B9A\u56DE\u6570\u3067\u6B62\u3081\u308B',
         PREF_COUNT : '\u56DE',
+        PREF_FORCE_VISIT_ON_OPERA : '\u518D\u751F\u6642\u306B\u300C\u8A2A\u554F\u6E08\u307F\u300D\u306B\u3059\u308B\u0028Opera\u306E\u307F\u0029',
         PREF_DEFAULT : '\u30C7\u30D5\u30A9\u30EB\u30C8\u306E\u8A2D\u5B9A\u306B\u623B\u3057\u307E\u3059\u3002',
         PLEASE_LOGIN : '\u30ED\u30B0\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044',
         OVER_ACCESS : '\u77ED\u6642\u9593\u3067\u306E\u9023\u7D9A\u30A2\u30AF\u30BB\u30B9',
@@ -568,6 +569,9 @@
         'ul.wnp_pref_list li input[type="checkbox"] {',
         '    margin-right: .5em; ',
         '}',
+        '.wnp_pref_separator {',
+        '    margin: 0.5em 10px 0.5em 15px; ',
+        '}',
         '</style>',
         '</head>',
         '<body>',
@@ -632,6 +636,10 @@
         '                    <li><input id="WNP_C_PREF_SKIP_DELETED_VIDEO" type="checkbox" checked="checked"><label for="WNP_C_PREF_SKIP_DELETED_VIDEO">' + Lang.PREF_SKIP_DELETED_VIDEO + '</label></li>',
         '                    <li><input id="WNP_C_PREF_USE_OFFTIMER" type="checkbox" checked="checked"><label for="WNP_C_PREF_USE_OFFTIMER">' + Lang.PREF_USE_OFFTIMER + '</label> <select id="WNP_C_PREF_OFFTIMER_MINUTE"><option value="10">10<option value="30">30<option value="60" selected="selected">60<option value="120">120</select>' + Lang.PREF_MINUTE + '</li>',
         '                    <li><input id="WNP_C_PREF_USE_LOOP_BREAK" type="checkbox" checked="checked"><label for="WNP_C_PREF_USE_LOOP_BREAK">' + Lang.PREF_USE_LOOP_BREAK + '</label> <select id="WNP_C_PREF_LOOP_BREAK_COUNT"><option value="0">0<option value="1">1<option value="2">2<option value="3" selected="selected">3<option value="10">10</select>' + Lang.PREF_COUNT + '</li>',
+        '                </ul>',
+        '                <hr class="wnp_pref_separator">',
+        '                <ul class="wnp_pref_list">',
+        '                    <li><input id="WNP_C_PREF_FORCE_VISIT_ON_OPERA" type="checkbox"><label for="WNP_C_PREF_FORCE_VISIT_ON_OPERA">' + Lang.PREF_FORCE_VISIT_ON_OPERA + '</label></li>',
         '                </ul>',
         '                </div>',
         '                <p class="wnp_menu_footer">',
@@ -3134,6 +3142,7 @@ function BUILD_WNP(T) {
         bindEventFunc(d.getElementById('WNP_C_PREF_OFFTIMER_MINUTE'), 'change', function(e) { self.applyPreferences({ offtimer_minute: e.currentTarget.value }, true); }, false, true);
         bindEventFunc(d.getElementById('WNP_C_PREF_USE_LOOP_BREAK'), 'click', function(e) { self.applyPreferences({ use_loop_break: e.currentTarget.checked }, true); }, false, true);
         bindEventFunc(d.getElementById('WNP_C_PREF_LOOP_BREAK_COUNT'), 'change', function(e) { self.applyPreferences({ loop_break_count: e.currentTarget.value }, true); }, false, true);
+        bindEventFunc(d.getElementById('WNP_C_PREF_FORCE_VISIT_ON_OPERA'), 'click', function(e) { self.applyPreferences({ force_visit_on_opera: e.currentTarget.checked }, true); }, false, true);
         bindEventFunc(d.getElementById('WNP_C_SET_DEFAULT'), 'click', function(e) { self.setDefaultPreferences(); }, false, true);
 
         bindEventFunc(d.getElementById('WNP_C_NICO_SEEKBAR'), 'click', function(e) {
@@ -3844,7 +3853,7 @@ function BUILD_WNP(T) {
             self.updateAlternativeView();
             self.timer.clear('playTimeout');
             self.observingVideoStart();
-            if (browser.opera) {
+            if (browser.opera && self.prefs.force_visit_on_opera) {
                 // force visit.
                 self.wnpWindow.setTimeout(function() {
                     var w = self.wnpWindow.open(videoinfo.url, '', 'width=1,height=1,menubar=no,toolbar=no,scrollbars=no,top=0,left=10000');
@@ -4014,6 +4023,14 @@ function BUILD_WNP(T) {
         wnpCore.play(videoinfo);
         wnpCore.pause();
         wnpCore.setMute(true);
+        // update last mute state.
+        var self = this;
+        wnpCore.addEventListener('load', function() {
+            wnpCore.removeEventListener('load', arguments.callee, false);
+            if (!self.wnpCore.current.isMute) {
+                self.wnpCore.volume(1e-14); // cancel mute.
+            }
+        }, false);
     };
     WNP.prototype.removePreload = function(videoinfo) {
         if (this.preloads.has(videoinfo.id)) {
@@ -4117,7 +4134,8 @@ function BUILD_WNP(T) {
             use_offtimer          : true,
             offtimer_minute       : 30,
             use_loop_break        : true,
-            loop_break_count      : 3
+            loop_break_count      : 3,
+            force_visit_on_opera  : false
         };
     };
     WNP.prototype.loadPreferences = function() {
@@ -4130,7 +4148,8 @@ function BUILD_WNP(T) {
             'use_offtimer',
             'offtimer_minute',
             'use_loop_break',
-            'loop_break_count'
+            'loop_break_count',
+            'force_visit_on_opera'
         ];
         var values = {};
         for (var i = 0; i < prefKeys.length; i++) {
@@ -4277,6 +4296,12 @@ function BUILD_WNP(T) {
             this.setPreferenceUI(key, this.prefs[key]);
             if (save) this.storePreference(key, this.prefs[key].toString());
         }
+        key = 'force_visit_on_opera';
+        if (key in prefs && prefs[key] != null) {
+            this.prefs[key] = (prefs[key] == true);
+            this.setPreferenceUI(key, this.prefs[key]);
+            if (save) this.storePreference(key, this.prefs[key] ? '1' : '0');
+        }
     };
     WNP.prototype.setPreferenceUI = function(key, value) {
         if (value == null) return;
@@ -4345,6 +4370,9 @@ function BUILD_WNP(T) {
                 break;
             case 'loop_break_count' :
                 document.getElementById('WNP_C_PREF_LOOP_BREAK_COUNT').value = value.toString();
+                break;
+            case 'force_visit_on_opera' :
+                document.getElementById('WNP_C_PREF_FORCE_VISIT_ON_OPERA').checked = (value == true);
                 break;
             default:
                 return;
