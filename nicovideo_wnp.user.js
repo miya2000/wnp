@@ -3,7 +3,7 @@
 // @description windowised nicovideo player.
 // @author      miya2000
 // @namespace   http://d.hatena.ne.jp/miya2000/
-// @version     1.0.9
+// @version     1.0.9.1
 // @include     http://www.nicovideo.jp/*
 // @exclude     http://www.nicovideo.jp/watch/*
 // @exclude     http://*http*
@@ -992,6 +992,7 @@ function BUILD_FUNC(T) {
                 }
                 if (/<script/i.test(a.innerHTML)) continue;
                 var img = a.getElementsByTagName('img')[0];
+                if (img && /\/_\.gif$/.test(img.src)) continue; // lazyimage.
                 if (img) {
                     title[videoid] = title[videoid] || img.alt;
                     image[videoid] = image[videoid] || img.src;
