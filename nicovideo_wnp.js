@@ -3,7 +3,7 @@
 // @description windowised nicovideo player.
 // @author      miya2000
 // @namespace   http://d.hatena.ne.jp/miya2000/
-// @version     1.0.9.1
+// @version     1.0.9.2
 // @include     http://www.nicovideo.jp/*
 // @exclude     http://www.nicovideo.jp/watch/*
 // @exclude     http://*http*
@@ -1938,7 +1938,8 @@ function BUILD_FUNC(T) {
         this.binds = [];
         this.listeners = {
             keydown: null,
-            keypress: null
+            keypress: null,
+            keyup: null
         };
         this.allowFilter = [];
     };
@@ -1966,7 +1967,15 @@ function BUILD_FUNC(T) {
     KeyBind.prototype.start = function() {
         var self = this;
         var isControlKindKey = false;
+        var keydownCode = -1;
+        var keypressCode = -1;
         $e(this.target).addEventListener('keydown', this.listeners.keydown = function(e) {
+            if (!('repeat' in e)) {
+                if (keydownCode === e.keyCode) {
+                    e.repeat = true;
+                }
+                keydownCode = e.keyCode;
+            }
             isControlKindKey = checkControlKindKey(e);
             if (!browser.opera) {
                 if (!checkEventTarget(e) && !checkAllowFilter(e)) return;
@@ -1981,6 +1990,12 @@ function BUILD_FUNC(T) {
             }
         }, false);
         $e(this.target).addEventListener('keypress', this.listeners.keypress = function(e) {
+           if (!('repeat' in e)) {
+                if (keypressCode === e.keyCode) {
+                    e.repeat = true;
+                }
+                keypressCode = e.keyCode;
+            }
             if (!checkEventTarget(e) && !checkAllowFilter(e)) return;
             if (!browser.opera) {
                 if (!isControlKindKey) processKey(e);
@@ -1988,6 +2003,10 @@ function BUILD_FUNC(T) {
             else {
                 processKey(e);
             }
+        }, false);
+        $e(this.target).addEventListener('keyup', this.listeners.keyup = function(e) {
+            keydownCode = -1;
+            keypressCode = -1;
         }, false);
         function processKey(e) {
             for (var i = 0, binds = self.binds, len = binds.length; i < len; i++) {
@@ -2056,8 +2075,10 @@ function BUILD_FUNC(T) {
     KeyBind.prototype.stop = function() {
         this.target.removeEventListener('keydown', this.listeners.keydown, false);
         this.target.removeEventListener('keypress', this.listeners.keypress, false);
+        this.target.removeEventListener('keyup', this.listeners.keyup, false);
         this.listeners.keydown = null;
         this.listeners.keypress = null;
+        this.listeners.keyup = null;
     };
     KeyBind.prototype.clear = function() {
         this.binds = [];
@@ -2414,9 +2435,7 @@ function BUILD_WNP(T) {
         var flvplayer = this.nico().flvplayer;
         if (!flvplayer) return;
         try {
-            if (flvplayer.ext_getStatus() == 'playing') {
-                flvplayer.ext_play(0);
-            }
+            flvplayer.ext_play(0);
         }
         catch(e) { postError(e) }
     };
@@ -2425,9 +2444,7 @@ function BUILD_WNP(T) {
         var flvplayer = this.nico().flvplayer;
         if (!flvplayer) return;
         try {
-            if (flvplayer.ext_getStatus() != 'playing') {
-                flvplayer.ext_play(1);
-            }
+            flvplayer.ext_play(1);
         }
         catch(e) { postError(e) }
     };
@@ -2839,8 +2856,14 @@ function BUILD_WNP(T) {
                 if (!flvplayer) return;
                 try {
                     var status = flvplayer.ext_getStatus();
-                    if (status == 'playing' || status == 'paused' || ((status == 'stopped' || status == 'load') && Number(flvplayer.ext_getLoadedRatio()) >= 0.1)) {
+                    var loadedRatio =  Number(flvplayer.ext_getLoadedRatio());
+                    var totalTime = Number(flvplayer.ext_getTotalTime());
+                    if (status == 'paused' || 
+                       ((status == 'playing' || status == 'stopped' || status == 'load') && (loadedRatio > 0.05 || loadedRatio * totalTime > 20))) {
                         flvplayer.ext_setMute(1); // cut first noise.
+                        flvplayer.ext_play(1);
+                    }
+                    else if (Number(flvplayer.ext_getPlayheadTime()) > 1) {
                         flvplayer.ext_play(1);
                     }
                     else {
@@ -2903,10 +2926,7 @@ function BUILD_WNP(T) {
                 // start check.
                 if (!videoStarted) {
                     if (!self.current.isPausing) {
-                        if (flvplayer.ext_getStatus() != 'playing') {
-                            flvplayer.ext_play(1);
-                            return;
-                        }
+                        flvplayer.ext_play(1);
                         var move = Number(flvplayer.ext_getPlayheadTime());
                         if (isNaN(move) || move < 2) return;
                     }
@@ -3033,8 +3053,8 @@ function BUILD_WNP(T) {
         platform.bindCommand({ name: 'SeekBackward',   fn: function() { self.seek(-15); }, desc: Lang.COMMAND_SeekBackward });
         platform.bindCommand({ name: 'SeekBackward-',  fn: function() { self.seek(-65); }, desc: Lang.COMMAND_SeekBackward_Minus });
         platform.bindCommand({ name: 'SeekBackward--', fn: function() { self.seek(Number.NEGATIVE_INFINITY); }, desc: Lang.COMMAND_SeekBackward_MinusMinus });
-        platform.bindCommand({ name: 'SelectNextItem',     fn: function() { self.selectNextItem(); }, desc: Lang.COMMAND_SelectNextItem });
-        platform.bindCommand({ name: 'SelectPrevItem',     fn: function() { self.selectPrevItem(); }, desc: Lang.COMMAND_SelectPrevItem });
+        platform.bindCommand({ name: 'SelectNextItem',     fn: function(e) { self.selectNextItem(e.repeat); }, desc: Lang.COMMAND_SelectNextItem });
+        platform.bindCommand({ name: 'SelectPrevItem',     fn: function(e) { self.selectPrevItem(e.repeat); }, desc: Lang.COMMAND_SelectPrevItem });
         platform.bindCommand({ name: 'PlaySelectedItem',   fn: function() { self.playSelectedItem(); }, desc: Lang.COMMAND_PlaySelectedItem });
         platform.bindCommand({ name: 'DeleteSelectedItem', fn: function() { self.deleteSelectedItem(); }, desc: Lang.COMMAND_DeleteSelectedItem });
         platform.bindCommand({ name: 'Menu',       fn: function() { self.menuToggle(); }, desc: Lang.COMMAND_Menu });
@@ -3264,21 +3284,33 @@ function BUILD_WNP(T) {
             }
         }
     };
-    WNP.prototype.selectNextItem = function() {
+    WNP.prototype.selectNextItem = function(isKeyRepeat) {
         if (!this.selectionIterator.item) {
             this.selectionIterator.current(this.playlistIterator.item);
         }
-        this.selectionIterator.next().isNullThenFirst();
+        this.selectionIterator.next();
+        if (isKeyRepeat) {
+            this.selectionIterator.isNullThenLast();
+        }
+        else {
+            this.selectionIterator.isNullThenFirst();
+        }
         if (this.selectionIterator.item == null) return;
         this.listUtil.select(this.selectionIterator.item);
         this.scrollPlaylistTo(this.selectionIterator.item);
     };
-    WNP.prototype.selectPrevItem = function() {
+    WNP.prototype.selectPrevItem = function(isKeyRepeat) {
         if (!this.selectionIterator.item) {
             this.selectionIterator.current(this.playlistIterator.item).isNullThenFirst();
         }
         else {
-            this.selectionIterator.prev().isNullThenLast();
+            this.selectionIterator.prev();
+            if (isKeyRepeat) {
+                this.selectionIterator.isNullThenFirst();
+            }
+            else {
+                this.selectionIterator.isNullThenLast();
+            }
         }
         if (this.selectionIterator.item == null) return;
         this.listUtil.select(this.selectionIterator.item);
@@ -3795,7 +3827,7 @@ function BUILD_WNP(T) {
             this.wnpCore.show();
         }
 
-        this.wnpWindow.setTimeout(function() {
+        this.timer.setTimeout('play', function() {
             if (preloaded) {
                 self.wnpCore.resume();
                 if (!self.wnpCore.current.isLoading) { // already loaded.
