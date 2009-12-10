@@ -3,7 +3,7 @@
 // @description windowised nicovideo player.
 // @author      miya2000
 // @namespace   http://d.hatena.ne.jp/miya2000/
-// @version     1.0.9.2
+// @version     1.0.9.3
 // @include     http://www.nicovideo.jp/*
 // @exclude     http://www.nicovideo.jp/watch/*
 // @exclude     http://*http*
@@ -2934,9 +2934,9 @@ function BUILD_WNP(T) {
                     self.dispatchEvent({ type: 'start' });
                     if (self.onstart) try { self.onstart(self) } catch(e) { postError(e) }
                 }
-                if (self.style == WNPCore.STYLE_FILL && flvplayer.ext_getVideoSize() != 'fit') { // for nicowari
+                if (self.current.style == WNPCore.STYLE_FILL && flvplayer.ext_getVideoSize() != 'fit') { // for nicowari
                     flvplayer.ext_setVideoSize('normal');
-                    self.style = WNPCore.STYLE_FILL;
+                    self.current.style = WNPCore.STYLE_FILL;
                     if (!self.timer.timeouts['relayout']) {
                         self.timer.setTimeout('relayout', function() {
                             self.layout();
