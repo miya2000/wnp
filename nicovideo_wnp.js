@@ -3228,6 +3228,7 @@ function BUILD_WNP(T) {
         bindEventFunc(volumeBar, 'click', function() {}, false, true);
         /*@cc_on IECover.putCover(volumeBar); @*/
         bindEventFunc(volumeBar, 'mousedown', function(e) {
+            self.isDragging = true;
             self.isVolumeSliding = true;
             setVolume(e);
             var controlPanel = self.wnpWindow.document.getElementById('WNP_CONTROL_PANEL');
@@ -3237,37 +3238,45 @@ function BUILD_WNP(T) {
         var menuSlider = d.getElementById('WNP_MENU_SLIDER');
         /*@cc_on IECover.putCover(menuSlider); @*/
         bindEventFunc(menuSlider, 'mousedown', function(e) {
+            self.isDragging = true;
             self.isSliding = true;
             menuSlider.style.backgroundColor = '#696969';
             d.body.style.cursor = 'e-resize';
         }, true, true);
         bindEventFunc(d, 'mousemove', function(e) {
             /*@cc_on
-            if (self.isSliding || self.isVolumeSliding) e.preventDefault();
+            if (self.isDragging) e.preventDefault();
             @*/
             if (self.isVolumeSliding) {
                 setVolume(e);
             }
         });
         bindEventFunc(d, 'mouseup', function(e) {
-            if (self.isSliding || self.isVolumeSliding) {
+            if (self.isDragging) {
                 self.showControlPanel();
             }
             if (self.isSliding) {
+                self.isSliding = false;
                 menuSlider.style.backgroundColor = '';
                 d.body.style.cursor = '';
                 var w = self.wnpWindow.innerWidth || ie.clientWidth(d);
+                var h = self.wnpWindow.innerHeight || ie.clientHeight(d);
                 var x = e.clientX;
-                var ratio = Math.ceil((1 - x / w) * 100);
-                if (ratio < 10 ) ratio = 10;
-                if (ratio > 100) ratio = 100;
-                self.prefs.menu_width_ratio = ratio;
-                self.menuShow();
+                var y = e.clientY;
+                if (y >= 0 && y <= h) {
+                    var ratio = Math.ceil((1 - x / w) * 100);
+                    if (ratio < 10 ) ratio = 10;
+                    if (ratio > 100) ratio = 100;
+                    self.prefs.menu_width_ratio = ratio;
+                    self.menuShow();
+                }
             }
-            if (self.isSliding || self.isVolumeSliding) {
+            if (self.isVolumeSliding) {
+                 self.isVolumeSliding = false;
+            }
+            if (self.isDragging) {
                 self.timer.setTimeout('slide_end', function() { // for ie's click event.
-                    self.isSliding = false;
-                    self.isVolumeSliding = false;
+                    self.isDragging = false;
                 }, 100);
             }
         });
@@ -3275,9 +3284,9 @@ function BUILD_WNP(T) {
         function setVolume(e) {
             var p = getAbsolutePosition(volumeBar);
             var width = volumeBar.offsetWidth;
-            var loc = (e.pageX <= p.x)         ? 0 :
-                      (e.pageX >= p.x + width) ? 100 : 
-                                                 (e.pageX - p.x);
+            var loc = (e.clientX <= p.x)         ? 0 :
+                      (e.clientX >= p.x + width) ? 100
+                                                 : (e.clientX - p.x);
             var len = 100;
             self.wnpCore.volumeTo(len * (loc / width));
             self.updateControlPanelStatus();
@@ -3473,7 +3482,7 @@ function BUILD_WNP(T) {
         this.timer.clear('observingVideo');
     };
     WNP.prototype.restoreControlPanel = function() {
-        if (this.isSliding || this.isVolumeSliding) return;
+        if (this.isDragging) return;
         this.timer.clear('controlPanel');
         var controlPanel = this.wnpWindow.document.getElementById('WNP_CONTROL_PANEL');
         controlPanel.style.visibility = '';
@@ -3508,7 +3517,7 @@ function BUILD_WNP(T) {
         }, sec);
     };
     WNP.prototype.controlToggle = function() {
-        if (this.isSliding || this.isVolumeSliding) return;
+        if (this.isDragging) return;
         this.wnpCore.setControlShowing(!this.wnpCore.current.isControlShowing);
     };
     WNP.prototype.menuToggle = function() {
