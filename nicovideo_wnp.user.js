@@ -3,7 +3,7 @@
 // @description windowised nicovideo player.
 // @author      miya2000
 // @namespace   http://d.hatena.ne.jp/miya2000/
-// @version     1.0.9.2
+// @version     1.0.9.3
 // @include     http://www.nicovideo.jp/*
 // @exclude     http://www.nicovideo.jp/watch/*
 // @exclude     http://*http*
@@ -511,11 +511,11 @@
         '    height: 100%;',
         '    cursor: pointer;',
         '    margin: 0 10px 0 5px;',
+        '    padding: 8px 0;',
         '}',
         'div.wnp_volumebar > div {',
-        '    width: 100%;',
+        '    width: auto;',
         '    height: 5px;',
-        '    margin-top: 8px;',
         '    background-color: #FFE4E1;',
         '}',
         'div.wnp_volumebar > div > div {',
@@ -548,12 +548,15 @@
         '    position: relative;',
         '}',
         'ul.wnp_playlist_items > li > img.wnp_iecover {',
-        '    position: absolute;',
         '    left: 0;',
-        '    width: 100%;',
         '    cursor: default;',
         '    height: 53px;',
-        '    filter: alpha(opacity=1);',
+        '}',
+        'div.wnp_volumebar {',
+        '    position: relative;',
+        '}',
+        'div.wnp_volumebar img.wnp_iecover {',
+        '    top: 0;',
         '}',
         @*/
         'ul.wnp_pref_list {',
@@ -599,10 +602,10 @@
         '        <div class="wnp_control_panel" id="WNP_CONTROL_PANEL">',
         '            <span class="wnp_button_container"><button class="control" title="' + Lang.COMMAND_Open + '" id="WNP_C_NICO_OPEN"><img src="' + Consts.WNP_IMAGE_OPEN + '"></button></span>',
         '            <span class="wnp_button_container"><button class="control" title="' + Lang.COMMAND_PlayPause + '" id="WNP_C_NICO_PAUSE"><img src="' + Consts.WNP_IMAGE_PLAY + '"></button></span>',
-        '            <div class="wnp_seekbar" id="WNP_C_NICO_SEEKBAR" title="' + Lang.CLICK_Seek + '"><div><div></div></div></div>',
+        '            <div class="wnp_seekbar" id="WNP_C_NICO_SEEKBAR" title="' + Lang.CLICK_Seek + '"><div><div id="WNP_C_NICO_SEEKBAR_BAR"></div></div></div>',
         '            <div class="wnp_etcbar">',
         '                <span class="wnp_button_container"><button class="control" id="WNP_C_NICO_MUTE" title="' + Lang.COMMAND_Mute + '">\u03BC</button></span>',
-        '                <div class="wnp_volumebar" id="WNP_C_NICO_VOLUMEBAR" title="' + Lang.CLICK_Volume + '"><div><div></div></div></div>',
+        '                <div class="wnp_volumebar" id="WNP_C_NICO_VOLUMEBAR" title="' + Lang.CLICK_Volume + '"><div><div id="WNP_C_NICO_VOLUMEBAR_BAR"></div></div></div>',
         '                <button class="control" id="WNP_C_NICO_COMM" title="' + Lang.COMMAND_Comment + '">\u24D2</button>',
         '                <button class="control" id="WNP_C_NICO_REPEAT" title="' + Lang.COMMAND_Repeat + '">\u03C3</button>',
         '            </div>',
@@ -794,6 +797,44 @@ function BUILD_FUNC(T) {
         }
     })();
     T.$e = $e;
+    /**
+     * IECover (for drag & drop)
+     */
+    /*@cc_on
+    var IECover = {
+        STYLE : [
+            '.wnp_iecover {',
+            '    position: absolute;',
+            '    width: 100%;',
+            '    height: 100%;',
+            '    filter: alpha(opacity=0);',
+            '}'
+        ].join('\n'),
+        initialize : function() {
+            addStyle(IECover.STYLE);
+            delete IECover.STYLE;
+            delete IECover.initialize;
+        },
+        putCover: function(element) {
+            if (IECover.initialize) IECover.initialize();
+            var img = element.ownerDocument.createElement('img');
+            img.src = Consts.WNP_IMAGE_EMPTY;
+            img.className = 'wnp_iecover';
+            element.insertBefore(img, element.firstChild);
+        },
+        process : function(func) {
+            func();
+        },
+        processCover : function(element, func) {
+            var cover = element.querySelector('.wnp_iecover');
+            if (!cover && hasClass(element, 'wnp_iecover')) {
+                cover = element;
+            }
+            if (cover) func(cover);
+        }
+    }
+    T.IECover = IECover;
+    @*/
     function uescape(s) {
         return escape(s).replace(/%([0-9A-F]{2})/g, '\\u00$1').replace(/%u/g, '\\u');
     }
@@ -1467,9 +1508,10 @@ function BUILD_FUNC(T) {
         this.current.dragTargetItem.style.backgroundColor = this.draggingColor;
         this.current.dragTargetImage = this.current.dragTargetItem.querySelector('img.thumbnail').src;
         this.listElement.style.cursor = 'move';
-        /*@cc_on
-        this.current.dragTargetItem.querySelector('.wnp_iecover').style.cursor = 'move';
-        @*/
+        /*@cc_on 
+        IECover.processCover(this.current.dragTargetItem, function(cover) {
+            cover.style.cursor = 'move';
+        }); @*/
         this.dispatchEvent({ type: 'dragstart' });
     };
     ListUtil.prototype.dragging = function() {
@@ -1520,8 +1562,9 @@ function BUILD_FUNC(T) {
         this.current.dragTargetItem = null;
         this.listElement.style.cursor = '';
         /*@cc_on
-        element.querySelector('.wnp_iecover').style.cursor = '';
-        @*/
+        IECover.processCover(element, function(cover) {
+            cover.style.cursor = '';
+        }); @*/
         this.dispatchEvent({ type: 'dragend', item: element });
     };
     ListUtil.prototype.dragCancel = function() {
@@ -1669,16 +1712,11 @@ function BUILD_FUNC(T) {
                     $e(self.listElement).addEventListener('mousedown', self.event_element_mousedown, false);
                 }
                 /*@cc_on
-                if (hasClass(e.target, 'wnp_iecover')) {
+                IECover.processCover(e.target, function(cover) {
                     $e(self.listElement).addEventListener('mousedown', self.event_element_mousedown, false);
-                }
-                @*/
+                });@*/
             }
-            /*@cc_on
-            if (self.current.isDragging) {
-                e.preventDefault();
-            }
-            @*/
+            /*@cc_on IECover.process(function() { e.preventDefault() }); @*/
             if (e.target !== e.currentTarget) {
                 var item = e.target;
                 while (item && item.parentNode !== e.currentTarget) item = item.parentNode;
@@ -2366,13 +2404,15 @@ function BUILD_WNP(T) {
         }
     };
     WNPCore.prototype.nico = function() {
-        var nicoWindow   = this._.nicoframe.contentWindow;
+        var nicoWindow   = (this._.nicoframe.parentNode) ? this._.nicoframe.contentWindow : null; // for ie.
         var nicoDocument = (nicoWindow) ? nicoWindow.document : null;
-        var flvplayer    = (nicoDocument) ? nicoDocument.getElementById('flvplayer') : null;
         return {
             window : nicoWindow,
             document : nicoDocument,
-            flvplayer : flvplayer
+            getPlayer : getPlayer
+        }
+        function getPlayer() {
+            return nicoDocument ? nicoDocument.getElementById('flvplayer') : null;
         }
     };
     WNPCore.prototype.loadingStart = function() {
@@ -2432,7 +2472,7 @@ function BUILD_WNP(T) {
     };
     WNPCore.prototype.pause = function() {
         this.current.isPausing = true;
-        var flvplayer = this.nico().flvplayer;
+        var flvplayer = this.nico().getPlayer();
         if (!flvplayer) return;
         try {
             flvplayer.ext_play(0);
@@ -2441,7 +2481,7 @@ function BUILD_WNP(T) {
     };
     WNPCore.prototype.resume = function() {
         this.current.isPausing = false;
-        var flvplayer = this.nico().flvplayer;
+        var flvplayer = this.nico().getPlayer();
         if (!flvplayer) return;
         try {
             flvplayer.ext_play(1);
@@ -2474,7 +2514,8 @@ function BUILD_WNP(T) {
     WNPCore.prototype.sight = function() {
         try {
             var nico = this.nico();
-            var p = getAbsolutePosition(nico.flvplayer);
+            var flvplayer = nico.getPlayer();
+            var p = getAbsolutePosition(flvplayer);
             if (this.current.size.viewW && this.current.size.viewW < Consts.ORG_PLAYER_MINIMUM_WIDTH) {
                 p.x += (Consts.ORG_PLAYER_MINIMUM_WIDTH - this.current.size.viewW) / 2;
             }
@@ -2524,8 +2565,8 @@ function BUILD_WNP(T) {
             if (!browser.mozilla) {
                 nico.document.documentElement.style.overflow = 'hidden';
             }
-            if (!nico.flvplayer) return;
-            var flvplayer = nico.flvplayer;
+            var flvplayer = nico.getPlayer();
+            if (!flvplayer) return;
             // set player width, height.
             if (nico.window.maximizePlayer !== WNPCore.emptyFunc) {
                 this._.org_maximizePlayer = nico.window.maximizePlayer;
@@ -2585,7 +2626,7 @@ function BUILD_WNP(T) {
                 nico.window.restorePlayer = this._.org_restorePlayer;
                 delete this._.org_restorePlayer;
             }
-            var flvplayer = nico.flvplayer
+            var flvplayer = nico.getPlayer();
             flvplayer.style.width = flvplayer.parentNode.style.width = '';
             flvplayer.style.height = flvplayer.parentNode.style.height = '';
             if (browser.mozilla) {
@@ -2653,7 +2694,7 @@ function BUILD_WNP(T) {
     WNPCore.prototype.setCommentOff = function(off) {
         this.current.isCommentOff = !!off;
         if (!this.current.isPlaying) return;
-        var flvplayer = this.nico().flvplayer;
+        var flvplayer = this.nico().getPlayer();
         if (!flvplayer) return;
         try {
             flvplayer.ext_setCommentVisible(!this.current.isCommentOff);
@@ -2663,7 +2704,7 @@ function BUILD_WNP(T) {
     WNPCore.prototype.setRepeat = function(repeat) {
         this.current.isRepeat = !!repeat;
         if (!this.current.isPlaying) return;
-        var flvplayer = this.nico().flvplayer;
+        var flvplayer = this.nico().getPlayer();
         if (!flvplayer) return;
         try {
             flvplayer.ext_setRepeat(this.current.isRepeat);
@@ -2673,7 +2714,7 @@ function BUILD_WNP(T) {
     WNPCore.prototype.setMute = function(mute) {
         this.current.isMute = !!mute;
         if (!this.current.isPlaying) return;
-        var flvplayer = this.nico().flvplayer;
+        var flvplayer = this.nico().getPlayer();
         if (!flvplayer) return;
         try {
             flvplayer.ext_setMute(this.current.isMute);
@@ -2682,7 +2723,7 @@ function BUILD_WNP(T) {
     };
     WNPCore.prototype.seek = function(time) {
         if (!this.current.isPlaying) return;
-        var flvplayer = this.nico().flvplayer;
+        var flvplayer = this.nico().getPlayer();
         if (!flvplayer) return;
         try {
             var len = Number(flvplayer.ext_getTotalTime());
@@ -2720,7 +2761,7 @@ function BUILD_WNP(T) {
     };
     WNPCore.prototype.seekTo = function(sec) {
         if (!this.current.isPlaying) return;
-        var flvplayer = this.nico().flvplayer;
+        var flvplayer = this.nico().getPlayer();
         if (!flvplayer) return;
         try {
             var len = Number(flvplayer.ext_getTotalTime());
@@ -2755,7 +2796,7 @@ function BUILD_WNP(T) {
         if (to > 100) to = 100;
         if (to < 0  ) to = 0;
         this.current.volume = to;
-        var flvplayer = this.nico().flvplayer;
+        var flvplayer = this.nico().getPlayer();
         if (flvplayer) {
             try {
                 flvplayer.ext_setVolume(to);
@@ -2772,7 +2813,7 @@ function BUILD_WNP(T) {
     };
     WNPCore.prototype.commentNum = function() { // not work on new player.
         if (!this.current.isPlaying) return 0;
-        var flvplayer = this.nico().flvplayer;
+        var flvplayer = this.nico().getPlayer();
         if (!flvplayer) return 0;
         var num = Number(flvplayer.GetVariable('last_resno'));
         return num;
@@ -2798,9 +2839,11 @@ function BUILD_WNP(T) {
                 var nico = self.nico();
                 if (!nico.window)   return;
                 if (!nico.document) return;
-                if (nico.window.location.href == 'about:blank') return;
+                var location;
+                try { location = nico.window.location.href; } catch (e) { /* redirected to other domain. */ }
+                if (location == 'about:blank') return;
                 // unexpected redirect.
-                if (!/^http:\/\/www\.nicovideo\.jp\/watch\/.*/.test(nico.window.location.href)) {
+                if (!/^http:\/\/www\.nicovideo\.jp\/watch\/.*/.test(location)) {
                     self.stop();
                     var event = { type: 'error', message : 'unexpected redirect.' };
                     self.dispatchEvent(event);
@@ -2852,14 +2895,14 @@ function BUILD_WNP(T) {
                     }
                 }
                 self.layoutIfNecessary();
-                var flvplayer = nico.flvplayer;
+                var flvplayer = nico.getPlayer();
                 if (!flvplayer) return;
                 try {
                     var status = flvplayer.ext_getStatus();
                     var loadedRatio =  Number(flvplayer.ext_getLoadedRatio());
                     var totalTime = Number(flvplayer.ext_getTotalTime());
                     if (status == 'paused' || 
-                       ((status == 'playing' || status == 'stopped' || status == 'load') && (loadedRatio > 0.05 || loadedRatio * totalTime > 20))) {
+                       ((status == 'playing' || status == 'stopped' || status == 'load') && (loadedRatio > 0.05 || loadedRatio * totalTime > 30))) {
                         flvplayer.ext_setMute(1); // cut first noise.
                         flvplayer.ext_play(1);
                     }
@@ -2922,7 +2965,7 @@ function BUILD_WNP(T) {
                     return;
                 }
                 self.layoutIfNecessary();
-                var flvplayer = nico.flvplayer;
+                var flvplayer = nico.getPlayer();
                 // start check.
                 if (!videoStarted) {
                     if (!self.current.isPausing) {
@@ -2934,9 +2977,9 @@ function BUILD_WNP(T) {
                     self.dispatchEvent({ type: 'start' });
                     if (self.onstart) try { self.onstart(self) } catch(e) { postError(e) }
                 }
-                if (self.style == WNPCore.STYLE_FILL && flvplayer.ext_getVideoSize() != 'fit') { // for nicowari
+                if (self.current.style == WNPCore.STYLE_FILL && flvplayer.ext_getVideoSize() != 'fit') { // for nicowari
                     flvplayer.ext_setVideoSize('normal');
-                    self.style = WNPCore.STYLE_FILL;
+                    self.current.style = WNPCore.STYLE_FILL;
                     if (!self.timer.timeouts['relayout']) {
                         self.timer.setTimeout('relayout', function() {
                             self.layout();
@@ -2989,7 +3032,7 @@ function BUILD_WNP(T) {
         try {
             var nico = this.nico();
             this.current.videoinfo = nico.window.Video;
-            var flvplayer = nico.flvplayer;
+            var flvplayer = nico.getPlayer();
             flvplayer.SetVariable('Overlay.onRelease', ''); // onPress 
             flvplayer.SetVariable('Overlay.hitArea', 0);
             this.setCommentOff(this.current.isCommentOff);
@@ -3069,7 +3112,7 @@ function BUILD_WNP(T) {
         platform.bindCommand({ name: 'Mute',    fn: function() { self.muteOnOff(); }, desc: Lang.COMMAND_Mute });
         platform.bindCommand({ name: 'Open',    fn: function() { self.openPrompt(); }, desc: Lang.COMMAND_Open });
         platform.bindCommand({ name: 'View',    fn: function() { self.layoutToggle(); }, desc: Lang.COMMAND_View });
-        platform.bindCommand({ name: 'NicoControl', fn: function() { self.wnpCore.setControlShowing(!self.wnpCore.current.isControlShowing); }, desc: Lang.COMMAND_NicoControl });
+        platform.bindCommand({ name: 'NicoControl', fn: function() { self.controlToggle(); }, desc: Lang.COMMAND_NicoControl });
         platform.bindCommand({ name: 'AlwaysOnTop', fn: function() { self.applyPreferences({ always_on_top: !self.prefs.always_on_top }); }, desc: Lang.COMMAND_AlwaysOnTop });
         // bind default shortcut.
         var shortcutList = this.getDefaultKeybordShortcut();
@@ -3100,6 +3143,9 @@ function BUILD_WNP(T) {
                 self.isSliding = false;
                 d.getElementById('WNP_MENU_SLIDER').style.backgroundColor = '';
                 d.body.style.cursor = '';
+            }
+            if (self.isVolumeSliding) {
+                self.isVolumeSliding = false;
             }
         }
         
@@ -3177,37 +3223,65 @@ function BUILD_WNP(T) {
                 self.updateControlPanelStatus();
             }
         }, false, true);
-        bindEventFunc(d.getElementById('WNP_C_NICO_VOLUMEBAR'), 'click', function(e) {
-            var volumebar = e.currentTarget;
-            var width = volumebar.offsetWidth;
-            var loc = (e.offsetX != null) ? e.offsetX : (e.layerX - volumebar.offsetLeft);
+        
+        var volumeBar = d.getElementById('WNP_C_NICO_VOLUMEBAR');
+        bindEventFunc(volumeBar, 'click', function() {}, false, true);
+        /*@cc_on IECover.putCover(volumeBar); @*/
+        bindEventFunc(volumeBar, 'mousedown', function(e) {
+            self.isVolumeSliding = true;
+            setVolume(e);
+            var controlPanel = self.wnpWindow.document.getElementById('WNP_CONTROL_PANEL');
+            controlPanel.style.visibility = 'visible';
+        }, true, true);
+        
+        var menuSlider = d.getElementById('WNP_MENU_SLIDER');
+        /*@cc_on IECover.putCover(menuSlider); @*/
+        bindEventFunc(menuSlider, 'mousedown', function(e) {
+            self.isSliding = true;
+            menuSlider.style.backgroundColor = '#696969';
+            d.body.style.cursor = 'e-resize';
+        }, true, true);
+        bindEventFunc(d, 'mousemove', function(e) {
+            /*@cc_on
+            if (self.isSliding || self.isVolumeSliding) e.preventDefault();
+            @*/
+            if (self.isVolumeSliding) {
+                setVolume(e);
+            }
+        });
+        bindEventFunc(d, 'mouseup', function(e) {
+            if (self.isSliding || self.isVolumeSliding) {
+                self.showControlPanel();
+            }
+            if (self.isSliding) {
+                menuSlider.style.backgroundColor = '';
+                d.body.style.cursor = '';
+                var w = self.wnpWindow.innerWidth || ie.clientWidth(d);
+                var x = e.clientX;
+                var ratio = Math.ceil((1 - x / w) * 100);
+                if (ratio < 10 ) ratio = 10;
+                if (ratio > 100) ratio = 100;
+                self.prefs.menu_width_ratio = ratio;
+                self.menuShow();
+            }
+            if (self.isSliding || self.isVolumeSliding) {
+                self.timer.setTimeout('slide_end', function() { // for ie's click event.
+                    self.isSliding = false;
+                    self.isVolumeSliding = false;
+                }, 100);
+            }
+        });
+        
+        function setVolume(e) {
+            var p = getAbsolutePosition(volumeBar);
+            var width = volumeBar.offsetWidth;
+            var loc = (e.pageX <= p.x)         ? 0 :
+                      (e.pageX >= p.x + width) ? 100 : 
+                                                 (e.pageX - p.x);
             var len = 100;
             self.wnpCore.volumeTo(len * (loc / width));
             self.updateControlPanelStatus();
-        }, false, true);
-        bindEventFunc(d.getElementById('WNP_MENU_SLIDER'), 'mousedown', function(e) {
-            self.isSliding = true;
-            d.getElementById('WNP_MENU_SLIDER').style.backgroundColor = '#696969';
-            d.body.style.cursor = 'e-resize';
-        }, true, true);
-        /*@cc_on
-        bindEventFunc(d, 'mousemove', function(e) {
-            if (self.isSliding) e.preventDefault(); // for ie.
-        });
-        @*/
-        bindEventFunc(d, 'mouseup', function(e) {
-            if (!self.isSliding) return;
-            self.isSliding = false;
-            d.getElementById('WNP_MENU_SLIDER').style.backgroundColor = '';
-            d.body.style.cursor = '';
-            var w = self.wnpWindow.innerWidth || ie.clientWidth(d);
-            var x = e.clientX;
-            var ratio = Math.ceil((1 - x / w) * 100);
-            if (ratio < 10) ratio = 10;
-            if (ratio > 100) ratio = 100;
-            self.prefs.menu_width_ratio = ratio;
-            self.menuShow();
-        });
+        }
 
         function updateLastOperationTime() { 
             self.lastOperationTime = new Date();
@@ -3383,10 +3457,10 @@ function BUILD_WNP(T) {
     WNP.prototype.updateControlPanelStatus = function() {
         var cur = this.wnpCore.playhead();
         var len = this.wnpCore.length();
-        this.wnpWindow.document.getElementById('WNP_C_NICO_SEEKBAR').firstChild.firstChild.style.width = (len ? (Math.ceil(cur / len * 100) + '%') : '0');
+        this.wnpWindow.document.getElementById('WNP_C_NICO_SEEKBAR_BAR').style.width = (len ? (Math.ceil(cur / len * 100) + '%') : '0');
         var vol = this.wnpCore.volume();
         if (vol != null) {
-            this.wnpWindow.document.getElementById('WNP_C_NICO_VOLUMEBAR').firstChild.firstChild.style.width = Math.ceil(vol / 100 * 100) + '%';
+            this.wnpWindow.document.getElementById('WNP_C_NICO_VOLUMEBAR_BAR').style.width = Math.ceil(vol / 100 * 100) + '%';
         }
     };
     WNP.prototype.observingVideoStart = function() {
@@ -3399,6 +3473,7 @@ function BUILD_WNP(T) {
         this.timer.clear('observingVideo');
     };
     WNP.prototype.restoreControlPanel = function() {
+        if (this.isSliding || this.isVolumeSliding) return;
         this.timer.clear('controlPanel');
         var controlPanel = this.wnpWindow.document.getElementById('WNP_CONTROL_PANEL');
         controlPanel.style.visibility = '';
@@ -3431,6 +3506,10 @@ function BUILD_WNP(T) {
         this.timer.setTimeout('hideHeaderAfter', function() {
             setStyleEnabled(style, true);
         }, sec);
+    };
+    WNP.prototype.controlToggle = function() {
+        if (this.isSliding || this.isVolumeSliding) return;
+        this.wnpCore.setControlShowing(!this.wnpCore.current.isControlShowing);
     };
     WNP.prototype.menuToggle = function() {
         if (this.isMenuShowing) {
@@ -3654,7 +3733,6 @@ function BUILD_WNP(T) {
         var title = info.title || info.id;
         var thumbnail = info.thumbnail || 'http:\/\/tn-skr2.smilevideo.jp/smile?i=' + info.id.slice(2);
         li.innerHTML = [
-            /*@cc_on '<img src=' + Consts.WNP_IMAGE_EMPTY + ' class="wnp_iecover">', @*/ // http://d.hatena.ne.jp/miya2000/20070306/p0
             '<div class="video_info">',
             '  <span class="playmark">\u25C6</span>',
             '  <a href="' + url + '" title="' + title + '" target="nico_frame">',
@@ -3666,6 +3744,7 @@ function BUILD_WNP(T) {
             '  <button>\u00D7</button>',
             '</div>',
         ].join('');
+        /*@cc_on IECover.putCover(li); @*/
         var self = this;
         var playThis = function(e) {
             self.play(self.playlistIterator.indexOf(li));
@@ -3694,7 +3773,7 @@ function BUILD_WNP(T) {
         }
         var ancs = li.getElementsByTagName('a');
         for (var i = 0; i < ancs.length; i++) $e(ancs[i]).addEventListener('click', playThis, false);
-        var desc = li.lastChild;
+        var desc = li.querySelector('.video_desc');
         $e(desc.getElementsByTagName('button')[0]).addEventListener('click', removeThis, false);
         return li;
     };
@@ -3796,8 +3875,7 @@ function BUILD_WNP(T) {
             this.stop();
             return;
         }
-        var playinfo = createPlayInfo(currentItem);
-        var videoinfo = createVideoInfo(playinfo);
+        var videoinfo = createVideoInfo(createPlayInfo(currentItem));
         var title = videoinfo.title;
 
         this.scheduleCancel();
@@ -4022,8 +4100,9 @@ function BUILD_WNP(T) {
         this.scheduleIterator = null;
     };
     WNP.prototype.preloadNext = function() {
-        var preloadIterator = new ListElementIterator(this.wnpWindow.document.getElementById('WNP_PLAYLIST_ITEMS')).current(this.playlistIterator.item).next();
-        if (this.prefs.loop) preloadIterator.isNullThenLast();
+        var preloadIterator = new ListElementIterator(this.wnpWindow.document.getElementById('WNP_PLAYLIST_ITEMS'));
+        preloadIterator.current(this.playlistIterator.item).next();
+        if (this.prefs.loop) preloadIterator.isNullThenFirst();
         var nextItem = preloadIterator.item;
         this.timer.clear('preload');
         if (!nextItem || this.wnpCore.loaded() < 1) {
@@ -4078,7 +4157,7 @@ function BUILD_WNP(T) {
                 wnpCore.detach();
             }
         }
-        this.preloads = ListedKeyMap();
+        this.preloads = new ListedKeyMap();
     };
     WNP.prototype.layoutToggle = function() {
         var nextStyle;
@@ -4277,8 +4356,8 @@ function BUILD_WNP(T) {
                     'ul.wnp_playlist_items li { height: 25px }',
                     'ul.wnp_playlist_items li div.video_desc * { display: none }',
                     'ul.wnp_playlist_items li div.video_desc a { display: inline }',
-                    /*@cc_on 'ul.wnp_playlist_items li img.wnp_iecover { height: 28px; }', @*/
                 ].join('\n');
+                /*@cc_on IECover.process(function(cover) { simple_style_str += ' ul.wnp_playlist_items li img.wnp_iecover { height: 28px; } ' }); @*/
                 var style = addStyle(simple_style_str, this.wnpWindow.document);
                 this._simplePlaylistStyle = style;
             }
