@@ -18,7 +18,12 @@ package {
 		private function setData(key:String, data:Object, name:String = null):String {
 			var localName:String = "wnp" + (name ? ("_" + name) : "");
 			var so:SharedObject = SharedObject.getLocal(localName);
-			so.data[key] = data;
+			if (data == null) {
+				delete so.data[key];
+			}
+			else {
+				so.data[key] = data;
+			}
 			return so.flush();
 		}
 		private function getData(key:String, name:String = null):Object {
