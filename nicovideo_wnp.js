@@ -3,7 +3,7 @@
 // @description windowised nicovideo player.
 // @author      miya2000
 // @namespace   http://d.hatena.ne.jp/miya2000/
-// @version     1.10
+// @version     1.11
 // @include     http://www.nicovideo.jp/*
 // @exclude     http://www.nicovideo.jp/watch/*
 // @exclude     http://*http*
@@ -3090,6 +3090,12 @@ function BUILD_WNP(T) {
             if (browser.opera && nico.window.Element.scrollTo && !/setTimeout/.test(nico.window.Element.scrollTo)) {
                 var org_scrollTo = nico.window.Element.scrollTo;
                 Element.scrollTo = function() { var args = arguments; setTimeout(function() { org_scrollTo.apply(this, args) }, 0.01); };
+            }
+            if (browser.mozilla) {
+                var header = flvplayer.ownerDocument.querySelector('div.bg_headmenu');
+                if (header) {
+                    header.style.position = 'absolute';
+                }
             }
         }
         catch(e) { postError(e) }
