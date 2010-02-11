@@ -3,7 +3,7 @@
 // @description windowised nicovideo player.
 // @author      miya2000
 // @namespace   http://d.hatena.ne.jp/miya2000/
-// @version     1.0.9.3
+// @version     1.10
 // @include     http://www.nicovideo.jp/*
 // @exclude     http://www.nicovideo.jp/watch/*
 // @exclude     http://*http*
@@ -101,6 +101,7 @@
         WNP_IMAGE_EMPTY : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQI12P4DwQACfsD%2FWMmxY8AAAAASUVORK5CYII%3D',
         WNP_IMAGE_PREF  : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAOUlEQVQoz2NgoCbg4uIC0x9%2B%2FP%2BPjInSTHVNeA3Bp4lojTCFRDkbXSNR%2Fh1YTSQHP20jm%2Bg4ohYAAAU6%2FYWVfvgIAAAAAElFTkSuQmCC',
         WNP_IMAGE_OPEN  : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAPCAYAAADkmO9VAAABKklEQVQ4y2NgoCL4%2F%2F8%2FYUWcnJwywcHBeQoKCmYUG8jFxcU3c%2BbMJUCF%2Fy9cuHBFTk5OnxIDuZcuXTrlPxI4e%2FbsQVkgIMdApoULF84BKvjx79%2B%2F%2F0D87%2B%2Ffv%2F9Ahp45c2YLIyOjPCkGMl%2B5cmUe0ICfQPwfZiDITBAbCH7fv3%2F%2FJFCdIkED%2Bfj4GC9evMjw9u3b%2F1jwP2T%2Bu3fvfsrIyOA30NHRkQFoO8ObN2%2BIws3NzYS9DLLV3d2dKEzQyyAXrlq1Kg1o%2B1MofoTEfgxjv3r16jmQvgVSS9CFK1euTANKfAeFPjQS%2FkPZ%2F5DYILwfpJaggSBbQXpA%2BC8omrGwoWZ%2FQHchVgB14WUQBmq8jIN9A0hvR3chVgC0FURpArEWEo3O1gZiJQZ6AAC9TX6jYSwl0gAAAABJRU5ErkJggg%3D%3D',
+        WNP_THUMB_PLACEHOLDER : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEEAAAAyCAIAAACMIyF9AAAAVklEQVRo3u3PAQkAMAwDsPt3OQeXcAuDwhgnFdA2p3q5QSpIp%2F8wMDAwMDAwMDD8b1jyI9llYGBgYGBgYGBgYGBgYBg3LPmR7DIwMDAwMDAwMDAwzBgeCliYGam%2FHsoAAAAASUVORK5CYII%3D',
         WNP_STORAGE_SWF : 'http://github.com/miya2000/wnp/raw/master/storage/wnp.swf',
         WNP_INITIAL_PLAYER_WIDTH  : 610,
         WNP_INITIAL_PLAYER_HEIGHT : 470,
@@ -208,6 +209,7 @@
         COMMAND_View        : '\u30D7\u30EC\u30A4\u30E4\u30FC\u306E\u8868\u793A\u3092\u5207\u308A\u66FF\u3048\u307E\u3059\u3002',
         COMMAND_NicoControl : '\u30CB\u30B3\u30CB\u30B3\u52D5\u753B\u30D7\u30EC\u30A4\u30E4\u30FC\u672C\u4F53\u306E\u30B3\u30F3\u30C8\u30ED\u30FC\u30EB\u306E\u8868\u793A\u3092\u5207\u308A\u66FF\u3048\u307E\u3059\u3002',
         COMMAND_AlwaysOnTop : '\u5E38\u306B\u5168\u753B\u9762\u8868\u793A\u3057\u307E\u3059\u3002\uFF08\u7C21\u6613\u5B9F\u88C5\u3067\u3059\uFF09',
+        COMMAND_Shuffle : '\u30D7\u30EC\u30A4\u30EA\u30B9\u30C8\u306E\u518D\u751F\u9806\u3092\u30B7\u30E3\u30C3\u30D5\u30EB\u3057\u307E\u3059\u3002',
         PREF_SIMPLE_PLAYLIST_VIEW : '\u30D7\u30EC\u30A4\u30EA\u30B9\u30C8\u3092\u30B7\u30F3\u30D7\u30EB\u8868\u793A\u306B\u3059\u308B',
         DESC_SIMPLE_PLAYLIST_VIEW : '\u30D7\u30EC\u30A4\u30EA\u30B9\u30C8\u3092\u30B7\u30F3\u30D7\u30EB\u8868\u793A\u306B\u3057\u307E\u3059\u3002',
         PREF_REMOVE_ON_FINISH : '\u518D\u751F\u304C\u7D42\u308F\u3063\u305F\u3089\u30D7\u30EC\u30A4\u30EA\u30B9\u30C8\u304B\u3089\u524A\u9664\u3059\u308B',
@@ -246,6 +248,7 @@
     WNP.html = function() { 
         var browser = WNP.fn.browser;
         var borderBox = browser.mozilla ? '-moz-box-sizing : border-box;' : browser.webkit ? '-webkit-box-sizing : border-box;' : '';
+        var backgroundSize = browser.opera ? '-o-background-size' : browser.mozilla ? '-moz-background-size' :  browser.webkit ? 'webkit-background-size' : 'background-size';
         return [
         '<!DOCTYPE html PUBLIC "-\/\/W3C\/\/DTD HTML 4.01 Transitional\/\/EN" "http:\/\/www.w3.org/TR/html4/loose.dtd">',
         '<html>',
@@ -419,6 +422,7 @@
         '    border-bottom: white solid 1px;',
         '    padding: 3px 0 2px;',
         '    overflow: hidden;',
+        backgroundSize + ': 130px auto;',
         '}',
         'ul.wnp_playlist_items li div.video_info {',
         '    width: 80px;',
@@ -431,7 +435,7 @@
         '    color: #3D7FEA;',
         '    font-size: 16px;',
         '}',
-        'ul.wnp_playlist_items li div.video_info img.thumbnail {',
+        'ul.wnp_playlist_items li div.video_info .thumbnail {',
         '    width: 65px;',
         '    height: 50px;',
         '    vertical-align: middle;',
@@ -618,8 +622,9 @@
         '                <p class="wnp_menu_header">playlist</p>',
         '                <ul class="wnp_playlist_items" id="WNP_PLAYLIST_ITEMS"></ul>',
         '                <p class="wnp_menu_footer">',
-        '                    <input id="WNP_C_PLAYLIST_STYLE" type="checkbox"><label for="WNP_C_PLAYLIST_STYLE" title="' + Lang.DESC_SIMPLE_PLAYLIST_VIEW + '">simple</label>',
-        '                    <input id="WNP_C_REMOVE_ON_FINISH" type="checkbox"><label for="WNP_C_REMOVE_ON_FINISH" title="' + Lang.DESC_REMOVE_ON_FINISH + '">remove on finish</label>',
+        '                    <input id="WNP_C_PLAYLIST_STYLE" type="checkbox" title="' + Lang.DESC_SIMPLE_PLAYLIST_VIEW + '"><label for="WNP_C_PLAYLIST_STYLE" title="' + Lang.DESC_SIMPLE_PLAYLIST_VIEW + '">simple</label>',
+        '                    <input id="WNP_C_REMOVE_ON_FINISH" type="checkbox" title="' + Lang.DESC_REMOVE_ON_FINISH + '"><label for="WNP_C_REMOVE_ON_FINISH" title="' + Lang.DESC_REMOVE_ON_FINISH + '">remove on finish</label>',
+        '                    <input id="WNP_C_SHUFFLE" type="button" title="' + Lang.COMMAND_Shuffle + '" value="shuffle">',
         '                </p>',
         '            </div>',
         '            <div class="wnp_menu_content" id="WNP_MENU_HISTORY">',
@@ -1068,7 +1073,7 @@ function BUILD_FUNC(T) {
             loader.parentNode.removeChild(loader);
             callback(playlist);
         }, false);
-        document.body.appendChild(loader);
+        document.getElementsByTagName('body')[0].appendChild(loader);
     }
     T.createPlayInfoFromUrl = createPlayInfoFromUrl;
     var makeNicoLinks = (function() {
@@ -1489,7 +1494,9 @@ function BUILD_FUNC(T) {
         return next.concat();
     };
     ListUtil.prototype.itemOver = function(element) {
-        if (!this.isSelectedItem(element)) element.style.backgroundColor = this.hoverColor;
+        if (!this.isSelectedItem(element)) {
+            element.style.backgroundColor = this.hoverColor;
+        }
         this.dispatchEvent({ type: 'itemover', item: element });
     };
     ListUtil.prototype.itemOut = function(element) {
@@ -1508,7 +1515,16 @@ function BUILD_FUNC(T) {
         this.current.dragTargetItem.style.backgroundColor = this.draggingColor;
         this.current.dragTargetImage = this.current.dragTargetItem.querySelector('img.thumbnail').src;
         this.listElement.style.cursor = 'move';
+
+        // deselect Text.
+        if (typeof getSelection == 'function') {
+            var selection = getSelection();
+            if (selection && typeof selection.removeAllRanges == 'function') {
+                selection.removeAllRanges();
+            }
+        }
         /*@cc_on 
+        document.selection.empty();
         IECover.processCover(this.current.dragTargetItem, function(cover) {
             cover.style.cursor = 'move';
         }); @*/
@@ -1568,6 +1584,7 @@ function BUILD_FUNC(T) {
         this.dispatchEvent({ type: 'dragend', item: element });
     };
     ListUtil.prototype.dragCancel = function() {
+        var element = this.current.dragTargetItem;
         if (this.current.dropTargetItem) {
             this.current.dropTargetItem.style.background = '';
             this.current.dropTargetItem = null;
@@ -1575,6 +1592,10 @@ function BUILD_FUNC(T) {
         this.current.dragTargetItem.style.backgroundColor = this.selectedColor;
         this.current.dragTargetItem = null;
         this.listElement.style.cursor = '';
+        /*@cc_on
+        IECover.processCover(element, function(cover) {
+            cover.style.cursor = '';
+        }); @*/
         this.dispatchEvent({ type: 'dragcancel' });
     };
     ListUtil.prototype.createProxy = function(el) {
@@ -1688,10 +1709,10 @@ function BUILD_FUNC(T) {
             }
         }, false);
         $e(this.listElement).addEventListener('mousedown', this.event_element_mousedown = function(e) {
-            self.current.isMouseDown = true;
             if (e.target === e.currentTarget) return;
             var item = e.target;
             while (item.parentNode !== e.currentTarget) item = item.parentNode;
+            self.current.isMouseDown = true;
             e.preventDefault();
             self.current.mouseDownItem = item;
             self.current.mouseDownPoint = { x: e.pageX, y: e.pageY };
@@ -1869,6 +1890,8 @@ function BUILD_FUNC(T) {
     function SwfStorage(swfUrl) {
         this.url = swfUrl;
         this.isLoaded = false;
+        this.onload = null;
+        this.onerror = null;
         this.timer = new TimerManager();
         this.load();
     }
@@ -1879,8 +1902,8 @@ function BUILD_FUNC(T) {
             swf.setAttribute('allowScriptAccess', 'always');
             swf.setAttribute('wmode', 'transparent');
             swf.setAttribute('src', this.url);
-            swf.setAttribute('width', '1px');
-            swf.setAttribute('height', '1px');
+            swf.setAttribute('width', '1');
+            swf.setAttribute('height', '1');
             swf.style.cssText = 'position: absolute; z-index: -1; top: 0; left: 0; width: 1px; height: 1px;';
             (document.body || document.documentElement).appendChild(swf);
             this.swf = swf;
@@ -1891,20 +1914,28 @@ function BUILD_FUNC(T) {
             var retry = 100;
             this.timer.setInterval('observe', function() {
                 try {
-                    self.swf.setData('test', 'test');
-                    if (self.swf.getData('test') == 'test') {
+                    if (test()) {
                         self.isLoaded = true;
                         self.timer.clear('observe');
-                        if (self.onload) try { self.onload(); } catch(e) {}
+                        if (self.onload) try { self.onload(); } catch(ee) { postError(ee); }
                     }
                 }
                 catch (e) {
                     if (--retry == 0) {
                         self.timer.clear('observe');
                         postError(e);
+                        if (self.onerror) try { self.onerror(); } catch(ee) { postError(ee); }
                     }
                 }
             }, 200);
+            function test() {
+                self.swf.setData('test', 'test', '_tmp');
+                if (self.swf.getData('test', '_tmp') == 'test') {
+                    self.swf.clear('_tmp');
+                    return true;
+                }
+                return false;
+            }
         },
         getData : function(key, name) {
             return this.swf.getData(key, name);
@@ -1929,10 +1960,17 @@ function BUILD_FUNC(T) {
     }
     LocalStorage.prototype = {
         getData : function(key, name) {
-            return localStorage.getItem((this.category ? (this.category + '/') : '') + (name != null ? (name + '.' + key) : key));
+            var keyName = (this.category ? (this.category + '/') : '') + (name != null ? (name + '.' + key) : key);
+            return localStorage.getItem(keyName);
         },
         setData : function(key, data, name) {
-            return localStorage.setItem((this.category ? (this.category + '/') : '') + (name != null ? (name + '.' + key) : key), data);
+            var keyName = (this.category ? (this.category + '/') : '') + (name != null ? (name + '.' + key) : key);
+            if (data == null) {
+                return localStorage.removeItem(keyName);
+            }
+            else {
+                return localStorage.setItem(keyName, data);
+            }
         },
         clear : function(name) {
             var prefix = (this.category ? (this.category + '/') : '') + (name != null ? (name + '.') : '');
@@ -2308,14 +2346,15 @@ function BUILD_WNP(T) {
      *   setControlShowing(boolean) - show or hide control of flv player.
      * [propety]
      *   element          - player element.
-     *   videoinfo        - set when video loaded. (has [videoid, url, thumb, title, desc] property.)
-     *   style            - current style.
-     *                      fill      : fill view.
-     *                      restore   : original page view.
-     *                      alternate : alternative still image.
-     *   isPlaying        - if playing video then true, else false.
-     *   isControlShowing - if control showing then true else false.
-     *   errorWhenDeleted - raise error when the movie has been deleted.
+     *   current          - current statuses.
+     *       videoinfo        - set when video loaded. (has [videoid, url, thumb, title, desc] property.)
+     *       style            - current style.
+     *                          fill      : fill view.
+     *                          restore   : original page view.
+     *                          alternate : alternative still image.
+     *       isPlaying        - if playing video then true, else false.
+     *       isControlShowing - if control showing then true else false.
+     *       errorWhenDeleted - raise error when the movie has been deleted.
      * [event]
      *   load             - fire event when the video page loaded.
      *   start            - fire event when the video started.
@@ -2948,20 +2987,23 @@ function BUILD_WNP(T) {
                     self.stop();
                     return;
                 }
+                var location;
+                try { location = nico.window.location.href; } catch (e) { /* redirected to other domain. */ }
                 // unexpected redirect.
-                if (!/^http:\/\/www\.nicovideo\.jp\/watch\/.*/.test(nico.window.location.href)) {
+                if (!/^http:\/\/www\.nicovideo\.jp\/watch\/.*/.test(location)) {
                     self.stop();
                     var event = { type: 'error', message : 'unexpected redirect.' };
                     self.dispatchEvent(event);
                     if (typeof self.onerror == 'function') try { self.onerror(event); } catch(e) { postError(e) }
                     return;
                 }
-                if (self.current.location != nico.window.location.href) {
+                if (self.current.location != location) {
                     var oldLocation = self.current.location;
-                    var newLocation = nico.window.location.href;
-                    self.current.location = newLocation;
+                    self.current.location = location;
                     self.observeLoad();
-                    self.dispatchEvent({ type: 'jump', from: oldLocation, to: newLocation });
+                    var event = { type: 'jump', from: oldLocation, to: location };
+                    self.dispatchEvent(event);
+                    if (typeof self.onjump == 'function') try { self.onjump(event); } catch(e) { postError(e) }
                     return;
                 }
                 self.layoutIfNecessary();
@@ -3077,7 +3119,7 @@ function BUILD_WNP(T) {
     WNP.prototype.build = function() {
         var d = this.wnpWindow.document;
         this.wnpElement = d.getElementById('WNP_PLAYER');
-        this.wnpCore = new WNPCore(d);
+        this.wnpCore = new WNPCore(d, 'nico_frame');
         d.getElementById('WNP_VIEW').appendChild(this.wnpCore.element);
         var self = this;
         
@@ -3114,6 +3156,7 @@ function BUILD_WNP(T) {
         platform.bindCommand({ name: 'View',    fn: function() { self.layoutToggle(); }, desc: Lang.COMMAND_View });
         platform.bindCommand({ name: 'NicoControl', fn: function() { self.controlToggle(); }, desc: Lang.COMMAND_NicoControl });
         platform.bindCommand({ name: 'AlwaysOnTop', fn: function() { self.applyPreferences({ always_on_top: !self.prefs.always_on_top }); }, desc: Lang.COMMAND_AlwaysOnTop });
+        platform.bindCommand({ name: 'Shuffle',    fn: function() { self.shuffle(); }, desc: Lang.COMMAND_Shuffle });
         // bind default shortcut.
         var shortcutList = this.getDefaultKeybordShortcut();
         for (var i = 0; i < shortcutList.length; i++) {
@@ -3193,6 +3236,7 @@ function BUILD_WNP(T) {
         bindEventCommand(d.getElementById('WNP_HEADER'), 'click', 'Menu');
         bindEventCommand(d.getElementById('WNP_FOOTER'), 'click', 'NicoControl');
         bindEventCommand(d.getElementById('WNP_C_ALWAYS_ON_TOP'), 'click', 'AlwaysOnTop');
+        bindEventCommand(d.getElementById('WNP_C_SHUFFLE'), 'click', 'Shuffle');
         
         bindEventFunc(d.getElementById('WNP_C_PLAYLIST_URI'), 'click', function(e) { self.wnpWindow.alert(Lang.SAVE_PLAYLIST_USAGE); }, true, true);
         bindEventFunc(d.getElementById('WNP_HEADER'), 'mousemove', function(e) { self.hideHeaderAfter(5000); });
@@ -3316,8 +3360,8 @@ function BUILD_WNP(T) {
             self.selectionIterator.current(e.lastSelectedItem);
         });
         listUtil.addEventListener('itemover', function(e) {
-            var playinfo = createPlayInfo(e.item);
-            self.showStatus(playinfo.title[playinfo.items[0]], 5);
+            var videoInfo = createVideoInfo(createPlayInfo(e.item));
+            self.showStatus(videoInfo.title, 5);
         });
         listUtil.addEventListener('itemout', function(e) {
             self.clearStatus();
@@ -3325,8 +3369,61 @@ function BUILD_WNP(T) {
         listUtil.hoverColor = Colors.item_hover;
         listUtil.selectedColor = Colors.item_selected;
         listUtil.draggingColor = Colors.item_dragging;
-
         this.listUtil = listUtil;
+        
+        bindEventFunc(list, 'click', function(e) {
+            if (e.target === e.currentTarget) return;
+            var item = e.target;
+            var a = null;
+            while (item.parentNode !== e.currentTarget) {
+                if (item.nodeName == 'A') { a = item; }
+                item = item.parentNode;
+            }
+            if (e.target.getAttribute('name') == 'deleteButton') {
+                self.remove(item);
+                e.preventDefault();
+            }
+            if (a) {
+                if (/(http:\/\/www\.nicovideo\.jp\/watch\/\w+)/.test(a.href)) {
+                    self.play(self.playlistIterator.indexOf(item));
+                    e.preventDefault();
+                }
+            }
+        });
+        
+        var histroy_list = d.getElementById('WNP_HISTORY_ITEMS');
+        bindEventFunc(histroy_list, 'click', function(e) {
+            if (e.target === e.currentTarget) return;
+            var item = e.target;
+            var a = null;
+            while (item.parentNode !== e.currentTarget) {
+                if (item.nodeName == 'A') { a = item; }
+                item = item.parentNode;
+            }
+            if (e.target.getAttribute('name') == 'deleteButton') {
+                histroy_list.removeChild(item);
+                e.preventDefault();
+            }
+            if (a) {
+                if (/(http:\/\/www\.nicovideo\.jp\/watch\/\w+)/.test(a.href)) {
+                    var pl = createPlayInfo(item);
+                    if (self.wnpCore.current.isPlaying) {
+                        WNP.insert(pl);
+                    }
+                    else {
+                        WNP.play(pl);
+                    }
+                    histroy_list.removeChild(item);
+                    e.preventDefault();
+                }
+            }
+        });
+
+        this.thumbnailMap = {};
+        var lazyLoad = function() { self.lazyloadThumbnailImagesLater(); };
+        bindEventFunc(this.wnpWindow, 'resize', lazyLoad);
+        bindEventFunc(list, 'scroll', lazyLoad);
+
         this.timer = new TimerManager(this.wnpWindow);
         this.preloads = new ListedKeyMap();
 
@@ -3334,6 +3431,7 @@ function BUILD_WNP(T) {
         this.selectionIterator = new ListElementIterator(list);
 
         this.prefs = this.getDefaultPreferences();
+        
         this.storage = createStorage();
         this.storage.onload = function () {
             self.loadPreferences();
@@ -3350,13 +3448,6 @@ function BUILD_WNP(T) {
         platform.keyBinds[''].addAllowFilter(function(e) {
             return e.target === clipboard.element || e.target === self._blurInput;
         });
-        
-        // for Opera10's bug (could not operate select element's index from script.)
-        setTimeout(function() {
-            replace(d.getElementById('WNP_C_PREF_OFFTIMER_MINUTE'));
-            replace(d.getElementById('WNP_C_PREF_LOOP_BREAK_COUNT'));
-            self.applyPreferences();
-        }, 500);
     };
     WNP.prototype.openPrompt = function() {
         var text = this.wnpWindow.prompt(Lang.PLEASE_INPUT_VIDEOID_OR_URL, '');
@@ -3603,6 +3694,12 @@ function BUILD_WNP(T) {
             }
         }
         
+        // for Opera10.10 bug (can't operate select element's index from script.)
+        if (index == 2) {
+            replace(document.getElementById('WNP_C_PREF_OFFTIMER_MINUTE'));
+            replace(document.getElementById('WNP_C_PREF_LOOP_BREAK_COUNT'));
+        }
+        
         menuContainer.style.marginLeft = -(100 * index) + '%';
         if (!this.isMenuShowing) this.menuShow();
         this.currentMenuIndex = index;
@@ -3691,14 +3788,16 @@ function BUILD_WNP(T) {
         else {
             newList = playlist;
         }
+
         var document = this.wnpWindow.document;
         var ul = document.getElementById('WNP_PLAYLIST_ITEMS');
         var df = document.createDocumentFragment();
-        for (var i = 0; i < newList.items.length; i++) {
+        for (var i = 0, len = newList.items.length; i < len; i++) {
             var videoinfo = createVideoInfo(newList, i);
-            var li = this.createPlaylistItem(videoinfo);
+            var li = this.createPlaylistItem(videoinfo, i >= 10);
             df.appendChild(li);
         }
+
         var firstItem = df.firstChild;
         if (opt.type == 'insertBeforeCurrent') {
             var target = this.playlistIterator.item || ul.firstChild;
@@ -3711,6 +3810,7 @@ function BUILD_WNP(T) {
         else {
             ul.appendChild(df);
         }
+
         if (start && firstItem) {
             var self = this;
             this.wnpWindow.setTimeout(function() {
@@ -3720,71 +3820,89 @@ function BUILD_WNP(T) {
             }, 0); // for firefox exception.
         }
         this.updatePlaylistURI();
+        this.lazyloadThumbnailImagesLater(1000);
     };
     WNP.prototype.addHistory = function(newList) {
         if (!newList) return;
         var document = this.wnpWindow.document;
         var ul = document.getElementById('WNP_HISTORY_ITEMS');
         var df = document.createDocumentFragment();
-        var items = newList.items;
-        for (var i = 0; i < items.length; i++) {
+        for (var i = 0, len = newList.items.length; i < len; i++) {
             var videoInfo = createVideoInfo(newList, i);
-            var li = this.createPlaylistItem(videoInfo, true);
+            var li = this.createPlaylistItem(videoInfo, false);
             df.appendChild(li);
         }
         ul.appendChild(df);
     };
-    WNP.prototype.createPlaylistItem = function(info, forHistory) {
+    WNP.prototype.createPlaylistItem = function(info, suppressThumbnail) {
         var wnpDocument = this.wnpWindow.document;
         var li = wnpDocument.createElement('li');
         var url = info.url;
         if (!url) url = 'http://www.nicovideo.jp/watch/' + info.id;
         var title = info.title || info.id;
-        var thumbnail = info.thumbnail || 'http:\/\/tn-skr2.smilevideo.jp/smile?i=' + info.id.slice(2);
+        var thumbnail = info.thumbnail;
+        if (!thumbnail) {
+            if (/^[a-z]{2}/.test(info.id)) {
+                thumbnail = 'http:\/\/tn-skr2.smilevideo.jp/smile?i=' + info.id.slice(2);
+            }
+            else {
+                thumbnail = Consts.WNP_THUMB_PLACEHOLDER;
+            }
+        }
+        if (suppressThumbnail) {
+            this.thumbnailMap[info.id] = thumbnail;
+            thumbnail = Consts.WNP_THUMB_PLACEHOLDER;
+        }
         li.innerHTML = [
             '<div class="video_info">',
             '  <span class="playmark">\u25C6</span>',
             '  <a href="' + url + '" title="' + title + '" target="nico_frame">',
-            '    <img class="thumbnail" name="' + info.id + '" src="' + thumbnail + '" width="65" height="50" alt="' + title + '">',
+            '    <img class="thumbnail ' + (suppressThumbnail ? 'lazyLoad' : '') + '" name="' + info.id + '" src="' + thumbnail + '" width="65" height="50" alt="' + title + '">',
             '  </a>',
             '</div>',
             '<div class="video_desc">',
             '  <a href="' + url + '" name="' + info.id + '" title="' + title + '" target="nico_frame">' + title + '</a><br>',
-            '  <button>\u00D7</button>',
+            '  <button name="deleteButton">\u00D7</button>',
             '</div>',
         ].join('');
         /*@cc_on IECover.putCover(li); @*/
-        var self = this;
-        var playThis = function(e) {
-            self.play(self.playlistIterator.indexOf(li));
-            e.preventDefault();
-        };
-        var removeThis = function(e) {
-            self.remove(li);
-            e.preventDefault();
-        };
-        if (forHistory) {
-            playThis = function(e) {
-                var pl = createPlayInfo(li);
-                if (self.wnpCore.current.isPlaying) {
-                    WNP.insert(pl);
-                }
-                else {
-                    WNP.play(pl);
-                }
-                li.parentNode.removeChild(li);
-                e.preventDefault();
-            };
-            removeThis = function(e) {
-                li.parentNode.removeChild(li);
-                e.preventDefault();
-            };
-        }
-        var ancs = li.getElementsByTagName('a');
-        for (var i = 0; i < ancs.length; i++) $e(ancs[i]).addEventListener('click', playThis, false);
-        var desc = li.querySelector('.video_desc');
-        $e(desc.getElementsByTagName('button')[0]).addEventListener('click', removeThis, false);
         return li;
+    };
+    WNP.prototype.lazyloadThumbnailImagesLater = function(delay) {
+        this.timer.clear('lazyloadThumbnailImages');
+        var self = this;
+        if (delay == null) {
+            delay = 200;
+        }
+        this.timer.setTimeout('lazyloadThumbnailImages', function() {
+            self.lazyloadThumbnailImages();
+        }, delay);
+    };
+    WNP.prototype.lazyloadThumbnailImages = function() {
+        var ul = this.wnpWindow.document.getElementById('WNP_PLAYLIST_ITEMS');
+        var lazyImages = ul.querySelectorAll('img.lazyLoad');
+        if (lazyImages.length == 0) {
+             this.thumbnailMap = {};
+             return;
+        }
+        var allowance = Math.max(ul.clientHeight / 5, 150);
+        var topMargin = ul.clientTop;
+        var scrollTop = ul.scrollTop + topMargin;
+        var scrollBottom = ul.scrollTop + topMargin + ul.clientHeight + allowance;
+        for (var i = 0, len = lazyImages.length; i < len; i++) {
+            var img = lazyImages[i];
+            var offsetTop = img.offsetTop;
+            var offsetHeight = img.offsetHeight;
+            /*@cc_on
+            var rect = img.getBoundingClientRect();
+            offsetTop = rect.top + ul.scrollTop - ul.offsetTop;
+            @*/
+            if (offsetTop + offsetHeight < scrollTop) continue;
+            if (offsetTop > scrollBottom) break;
+            removeClass(img, 'lazyLoad');
+            var thumbUrl = this.thumbnailMap[img.name];
+            img.src = thumbUrl;
+        }
     };
     WNP.prototype.clear = function() {
         this.playlist = { items: [], video: {}, title: {}, image: {} };
@@ -3806,7 +3924,38 @@ function BUILD_WNP(T) {
             }
             ul.removeChild(item);
         }
+        this.lazyloadThumbnailImagesLater(1000);
         this.updatePlaylistURI();
+    };
+    WNP.prototype.shuffle = function() {
+        var document = this.wnpWindow.document;
+        var ul = document.getElementById('WNP_PLAYLIST_ITEMS');
+
+        var childs = [];
+        for (var i = 0, len = ul.childNodes.length; i < len; i++) {
+            childs.push(ul.childNodes[i]);
+        }
+        
+        // http://la.ma.la/blog/diary_200608300350.htm
+        var i = childs.length;
+        while(i) {
+            var j = Math.random() * i | 0;
+            var t = childs[--i];
+            childs[i] = childs[j];
+            childs[j] = t;
+        }
+        
+        var df = document.createDocumentFragment();
+        for (var i = 0, len = childs.length; i < len; i++) {
+            df.appendChild(childs[i]);
+        }
+        ul.appendChild(df);
+        
+        if (this.wnpCore.current.isPlaying) {
+            this.scrollPlaylistTo(this.playlistIterator.item);
+        }
+        this.updatePlaylistURI();
+        this.lazyloadThumbnailImagesLater();
     };
     WNP.prototype.updatePlaylistURI = function() {
         this.timer.clear('updatePlaylistURI');
@@ -3821,7 +3970,9 @@ function BUILD_WNP(T) {
                 var videoid = playinfo.items[0];
                 playlist.items.push(videoid);
                 playlist.title[videoid] = playinfo.title[videoid];
-                playlist.image[videoid] = playinfo.image[videoid];
+                if (/^http/.test(playinfo.image[videoid])) {
+                    playlist.image[videoid] = playinfo.image[videoid];
+                }
                 itr.next();
             }
             self.playlist = playlist;
@@ -3836,10 +3987,10 @@ function BUILD_WNP(T) {
         }, 2000);
     };
     WNP.prototype.updatePrevAndNext = function() {
-        var wnpDocument = this.wnpWindow.document;
+        var document = this.wnpWindow.document;
         var currentItem = this.playlistIterator.item;
-        var itr = new ListElementIterator(wnpDocument.getElementById('WNP_PLAYLIST_ITEMS'));
-        var button = wnpDocument.getElementById('WNP_C_PREV');
+        var itr = new ListElementIterator(document.getElementById('WNP_PLAYLIST_ITEMS'));
+        var button = document.getElementById('WNP_C_PREV');
         if (itr.prev(currentItem).item) {
             var playinfo = createPlayInfo(itr.item);
             this.bindVideoInfo(button, playinfo.video[playinfo.items[0]], playinfo.title[playinfo.items[0]]);
@@ -3847,7 +3998,7 @@ function BUILD_WNP(T) {
         else {
             this.unbindVideoInfo(button);
         }
-        var button = wnpDocument.getElementById('WNP_C_NEXT');
+        var button = document.getElementById('WNP_C_NEXT');
         if (itr.next(currentItem).item) {
             var playinfo = createPlayInfo(itr.item);
             this.bindVideoInfo(button, playinfo.video[playinfo.items[0]], playinfo.title[playinfo.items[0]]);
@@ -3898,7 +4049,7 @@ function BUILD_WNP(T) {
             var oldCore = this.wnpCore;
             this.wnpCore = this.preloads.get(videoinfo.id);
             this.preloads.remove(videoinfo.id);
-            this.wnpCore.style = oldCore.style;
+            this.wnpCore.setStyle(oldCore.current.style);
             this.wnpCore.seekTo(0);
             this.wnpCore.setCommentOff(oldCore.current.isCommentOff);
             this.wnpCore.setMute(oldCore.current.isMute);
@@ -3953,6 +4104,9 @@ function BUILD_WNP(T) {
             var video_id = self.wnpCore.current.videoinfo.id;
             var thumbnail = self.wnpCore.current.videoinfo.thumbnail;
             var elements = self.wnpWindow.document.getElementsByName(video_id);
+            if (elements.length == 0 && self.wnpCore.current.videoinfo.v) {
+                elements = self.wnpWindow.document.getElementsByName(self.wnpCore.current.videoinfo.v);
+            }
             for (var i = 0; i < elements.length; i++) {
                 var el = elements[i];
                 if (el.nodeName == 'IMG') {
@@ -4028,6 +4182,9 @@ function BUILD_WNP(T) {
                 }
             }
         })();
+        this.wnpCore.onjump = function(e) {
+            title = null; // It will update when onload.
+        };
         
         appendClass(this.wnpElement, 'playing');
         appendClass(currentItem, 'playing');
@@ -4046,6 +4203,8 @@ function BUILD_WNP(T) {
         wnpDocument.title = Consts.WNP_TITLE;
         removeClass(this.wnpElement, 'playing');
         if (this.playingItem) removeClass(this.playingItem, 'playing');
+        this.timer.clear('playTimeout');
+        this.timer.clear('preload');
         this.updatePauseButton();
         this.wnpWindow.document.getElementById('WNP_C_NICO_SEEKBAR').firstChild.firstChild.style.width = '0';
     };
@@ -4087,8 +4246,8 @@ function BUILD_WNP(T) {
     };
     WNP.prototype.schedulePlay = function() {
         if (!this.scheduleIterator) return;
-        var playinfo = createPlayInfo(this.scheduleIterator.item);
-        this.showStatus("next: " + playinfo.title[playinfo.items[0]], 3);
+        var videoInfo = createVideoInfo(createPlayInfo(this.scheduleIterator.item));
+        this.showStatus("next: " + videoInfo.title, 3);
         var self = this;
         this.timer.setTimeout('schedulePlay', function() {
             self.timer.clear('schedulePlay');
@@ -4130,7 +4289,7 @@ function BUILD_WNP(T) {
             preloads.getAt(0).detach();
             preloads.removeAt(0);
         }
-        var wnpCore = new WNPCore(this.wnpWindow.document);
+        var wnpCore = new WNPCore(this.wnpWindow.document, 'nico_frame');
         preloads.add(videoinfo.id, wnpCore);
         wnpCore.observeInterval = this.prefs.observe_interval;
         wnpCore.current.errorWhenDeleted = this.prefs.skip_deleted_video;
@@ -4360,7 +4519,7 @@ function BUILD_WNP(T) {
             this.prefs[key] = (prefs[key] == true);
             if (!this._simplePlaylistStyle) {
                 var simple_style_str = [
-                    'ul.wnp_playlist_items li div.video_info img.thumbnail { display: none }',
+                    'ul.wnp_playlist_items li div.video_info .thumbnail { display: none }',
                     'ul.wnp_playlist_items li div.video_info { width: 10px }',
                     'ul.wnp_playlist_items li { height: 25px }',
                     'ul.wnp_playlist_items li div.video_desc * { display: none }',
@@ -4373,6 +4532,9 @@ function BUILD_WNP(T) {
             setStyleEnabled(this._simplePlaylistStyle, this.prefs[key]);
             this.setPreferenceUI(key, this.prefs[key]);
             if (save) this.storePreference(key, this.prefs[key] ? '1' : '0');
+            if (!this.prefs[key]) {
+                this.lazyloadThumbnailImagesLater(1000);
+            }
         }
         key = 'remove_on_finish';
         if (key in prefs && prefs[key] != null) {
@@ -4703,7 +4865,7 @@ WNP.BUILD_WNP = BUILD_WNP;
                 tooltip.style.display = 'none';
                 tid = null;
                 pls = null;
-            }, 3000);
+            }, 2200);
         }
     })();
     WNP.showWnpControlPanel = function showWnpControlPanel() {
