@@ -3,7 +3,7 @@
 // @description windowised nicovideo player.
 // @author      miya2000
 // @namespace   http://d.hatena.ne.jp/miya2000/
-// @version     1.11
+// @version     1.12
 // @include     http://www.nicovideo.jp/*
 // @exclude     http://www.nicovideo.jp/watch/*
 // @exclude     http://*http*
@@ -53,7 +53,8 @@
         use_offtimer     : true,  // use offtimer or not.
         offtimer_minute  : 60,    // (min) off timer.
         use_loop_break   : true,  // use loop break or not.
-        loop_break_count : 3      // exit from loop video by specified count. 
+        loop_break_count : 3      // exit from the loop video by specified count. 
+        cancel_jump : false       // if the video page jumped to another page, go to next video.
         */
     };
     
@@ -221,6 +222,7 @@
         PREF_MINUTE : '\u5206',
         PREF_USE_LOOP_BREAK : '\u30EB\u30FC\u30D7\u3059\u308B\u52D5\u753B\u3092\u6307\u5B9A\u56DE\u6570\u3067\u6B62\u3081\u308B',
         PREF_COUNT : '\u56DE',
+        PREF_CANCEL_JUMP : '\u5225\u306E\u52D5\u753B\u306B\u79FB\u52D5\u3057\u306A\u3044\u3088\u3046\u306B\u3059\u308B',
         PREF_FORCE_VISIT_ON_OPERA : '\u518D\u751F\u6642\u306B\u300C\u8A2A\u554F\u6E08\u307F\u300D\u306B\u3059\u308B\u0028Opera\u306E\u307F\u0029',
         PREF_DEFAULT : '\u30C7\u30D5\u30A9\u30EB\u30C8\u306E\u8A2D\u5B9A\u306B\u623B\u3057\u307E\u3059\u3002',
         PLEASE_LOGIN : '\u30ED\u30B0\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044',
@@ -644,6 +646,7 @@
         '                    <li><input id="WNP_C_PREF_SKIP_DELETED_VIDEO" type="checkbox" checked="checked"><label for="WNP_C_PREF_SKIP_DELETED_VIDEO">' + Lang.PREF_SKIP_DELETED_VIDEO + '</label></li>',
         '                    <li><input id="WNP_C_PREF_USE_OFFTIMER" type="checkbox" checked="checked"><label for="WNP_C_PREF_USE_OFFTIMER">' + Lang.PREF_USE_OFFTIMER + '</label> <select id="WNP_C_PREF_OFFTIMER_MINUTE"><option value="10">10<option value="30">30<option value="60" selected="selected">60<option value="120">120</select>' + Lang.PREF_MINUTE + '</li>',
         '                    <li><input id="WNP_C_PREF_USE_LOOP_BREAK" type="checkbox" checked="checked"><label for="WNP_C_PREF_USE_LOOP_BREAK">' + Lang.PREF_USE_LOOP_BREAK + '</label> <select id="WNP_C_PREF_LOOP_BREAK_COUNT"><option value="0">0<option value="1">1<option value="2">2<option value="3" selected="selected">3<option value="10">10</select>' + Lang.PREF_COUNT + '</li>',
+        '                    <li><input id="WNP_C_PREF_CANCEL_JUMP" type="checkbox"><label for="WNP_C_PREF_CANCEL_JUMP">' + Lang.PREF_CANCEL_JUMP + '</label></li>',
         '                </ul>',
         '                <hr class="wnp_pref_separator">',
         '                <ul class="wnp_pref_list">',
@@ -2490,6 +2493,7 @@ function BUILD_WNP(T) {
         }
         this._.nicoframe.src = video_url;
         this.current.isPlaying = true;
+        this.current.isPausing = false;
         this.loadingStart();
         this.layout();
         this._.container.appendChild(this._.nicoframe);
@@ -3259,6 +3263,7 @@ function BUILD_WNP(T) {
         bindEventFunc(d.getElementById('WNP_C_PREF_OFFTIMER_MINUTE'), 'change', function(e) { self.applyPreferences({ offtimer_minute: e.currentTarget.value }, true); }, false, true);
         bindEventFunc(d.getElementById('WNP_C_PREF_USE_LOOP_BREAK'), 'click', function(e) { self.applyPreferences({ use_loop_break: e.currentTarget.checked }, true); }, false, true);
         bindEventFunc(d.getElementById('WNP_C_PREF_LOOP_BREAK_COUNT'), 'change', function(e) { self.applyPreferences({ loop_break_count: e.currentTarget.value }, true); }, false, true);
+        bindEventFunc(d.getElementById('WNP_C_PREF_CANCEL_JUMP'), 'click', function(e) { self.applyPreferences({ cancel_jump: e.currentTarget.checked }, true); }, false, true);
         bindEventFunc(d.getElementById('WNP_C_PREF_FORCE_VISIT_ON_OPERA'), 'click', function(e) { self.applyPreferences({ force_visit_on_opera: e.currentTarget.checked }, true); }, false, true);
         bindEventFunc(d.getElementById('WNP_C_SET_DEFAULT'), 'click', function(e) { self.setDefaultPreferences(); }, false, true);
 
@@ -3517,6 +3522,7 @@ function BUILD_WNP(T) {
     };
     WNP.prototype.scrollPlaylistTo = function(item) {
         if (!item) return;
+        if (item.nodeType != 1) return;
         if (this.scrollSoar != null) {
             this.scrollSoar.cancel();
         }
@@ -4138,8 +4144,9 @@ function BUILD_WNP(T) {
                 self.wnpWindow.setTimeout(function() {
                     var w = self.wnpWindow.open(videoinfo.url, '', 'width=1,height=1,menubar=no,toolbar=no,scrollbars=no,top=0,left=10000');
                     w.blur();
-                    self.wnpWindow.setTimeout(function() { w.close(); }, 800);
-                    self.wnpWindow.setTimeout(function() { if (!w.closed) w.close(); }, 3000);
+                    self.wnpWindow.setTimeout(function() { w.close(); postError("closed1?" + w.closed); }, 800);
+                    self.wnpWindow.setTimeout(function() { if (!w.closed) w.close(); postError("closed2?" + w.closed); }, 3000);
+                    self.wnpWindow.setTimeout(function() { if (!w.closed) w.close(); postError("closed3?" + w.closed); }, 10000);
                 }, 5000);
             }
         };
@@ -4189,7 +4196,10 @@ function BUILD_WNP(T) {
             }
         })();
         this.wnpCore.onjump = function(e) {
-            title = null; // It will update when onload.
+            title = null; // update when jumped video onload.
+            if (self.prefs.cancel_jump) {
+                self.wnpCore.onfinish();
+            }
         };
         
         appendClass(this.wnpElement, 'playing');
@@ -4421,6 +4431,7 @@ function BUILD_WNP(T) {
             offtimer_minute       : 30,
             use_loop_break        : true,
             loop_break_count      : 3,
+            cancel_jump           : false,
             force_visit_on_opera  : false
         };
     };
@@ -4435,6 +4446,7 @@ function BUILD_WNP(T) {
             'offtimer_minute',
             'use_loop_break',
             'loop_break_count',
+            'cancel_jump',
             'force_visit_on_opera'
         ];
         var values = {};
@@ -4585,6 +4597,12 @@ function BUILD_WNP(T) {
             this.setPreferenceUI(key, this.prefs[key]);
             if (save) this.storePreference(key, this.prefs[key].toString());
         }
+        key = 'cancel_jump';
+        if (key in prefs && prefs[key] != null) {
+            this.prefs[key] = (prefs[key] == true);
+            this.setPreferenceUI(key, this.prefs[key]);
+            if (save) this.storePreference(key, this.prefs[key] ? '1' : '0');
+        }
         key = 'force_visit_on_opera';
         if (key in prefs && prefs[key] != null) {
             this.prefs[key] = (prefs[key] == true);
@@ -4659,6 +4677,9 @@ function BUILD_WNP(T) {
                 break;
             case 'loop_break_count' :
                 document.getElementById('WNP_C_PREF_LOOP_BREAK_COUNT').value = value.toString();
+                break;
+            case 'cancel_jump' :
+                document.getElementById('WNP_C_PREF_CANCEL_JUMP').checked = (value == true);
                 break;
             case 'force_visit_on_opera' :
                 document.getElementById('WNP_C_PREF_FORCE_VISIT_ON_OPERA').checked = (value == true);
@@ -4913,6 +4934,7 @@ WNP.BUILD_WNP = BUILD_WNP;
         WNP.init();
     }
     
+    if (!document.documentElement) return;
     if (location.href.indexOf('http://www.nicovideo.jp/wnp/') === 0 && /^#(?:\w{2})?\d+$/.test(location.hash)) {
         var videoid = location.hash.replace(/^#/, '');
         // delay for ie8.
