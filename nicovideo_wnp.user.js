@@ -3,8 +3,8 @@
 // @description windowised nicovideo player.
 // @author      miya2000
 // @namespace   http://d.hatena.ne.jp/miya2000/
-// @version     1.12
-// @include     http://www.nicovideo.jp/*
+// @version     1.15
+// @include     http://*.nicovideo.jp/*
 // @exclude     http://www.nicovideo.jp/watch/*
 // @exclude     http://*http*
 // ==/UserScript==
@@ -20,7 +20,7 @@
 */
 // ==== preparation ==== //
 (function(f) {
-    if (typeof unsafeWindow == "undefined") return f;
+    if (typeof unsafeWindow == "undefined" && !/Chrome[/]/.test(navigator.userAgent)) return f;
     return function() {
         var s = document.createElement('script');
         s.setAttribute('type', 'text/javascript');
@@ -109,7 +109,8 @@
         ORG_PLAYER_VIEW_WIDTH  : 544,
         ORG_PLAYER_VIEW_HEIGHT : 384,
         ORG_PLAYER_CONTROL_HEIGHT : 63,
-        ORG_PLAYER_MINIMUM_WIDTH  : 561
+        ORG_PLAYER_MINIMUM_WIDTH  : 561,
+        WNP_GATEWAY_URL : 'http://www.nicovideo.jp/mylist_add/'
     }
     WNP.Consts = Consts;
     Consts.svg_xml_base = [
@@ -240,6 +241,7 @@
     var browser = fn.browser;
     var ie = fn.ie;
     var $e = fn.$e;
+    var isNative = fn.isNative;
     var toJSON = fn.toJSON;
     var getAbsolutePosition = fn.getAbsolutePosition;
     var addStyle = fn.addStyle;
@@ -712,9 +714,10 @@
         '    display: inline-block;',
         '    width: 50px;', /*@cc_on 'width: 48px;', @*/
         '    height: 24px;',
-        '    position: relative;',
-        '    top: -15px;',
+        '    position: absolute;',
+        '    top: 0px;',
         '    margin-top: 3px;',
+        '    margin-left: 2px;',
         '}',
         '.wnp_tooltip a:hover {',
         '    border-top-color: #666;',
@@ -843,6 +846,11 @@ function BUILD_FUNC(T) {
     }
     T.IECover = IECover;
     @*/
+
+    function isNative(func) {
+        return typeof func == 'function' && /^function\s+\w+\([^)]*?\)\s*\{\s*\[native code\]\s*\}$/.test(func.toString());
+    }
+    T.isNative = isNative;
     function uescape(s) {
         return escape(s).replace(/%([0-9A-F]{2})/g, '\\u00$1').replace(/%u/g, '\\u');
     }
@@ -870,7 +878,7 @@ function BUILD_FUNC(T) {
             return '{' + tmp.join(',') + '}';
         }
         return '\"' + uescape(o.toString()) + '\"';
-    };
+    }
     T.toJSON = toJSON;
     var escapeHTML = (function() {
         var dv;
@@ -1061,9 +1069,9 @@ function BUILD_FUNC(T) {
         var videoid = playInfo.items[index || 0];
         return {
             id        : videoid,
-            url       : playInfo.video[videoid],
-            title     : playInfo.title[videoid],
-            thumbnail : playInfo.image[videoid]
+            url       : playInfo.video ? playInfo.video[videoid] : null,
+            title     : playInfo.title ? playInfo.title[videoid] : null,
+            thumbnail : playInfo.image ? playInfo.image[videoid] : null
         }
     }
     T.createVideoInfo = createVideoInfo;
@@ -3077,6 +3085,7 @@ function BUILD_WNP(T) {
         this.loadingEnd();
         try {
             var nico = this.nico();
+            this.current.location = nico.window.location.href; // for video redirect.
             this.current.videoinfo = nico.window.Video;
             var flvplayer = nico.getPlayer();
             flvplayer.SetVariable('Overlay.onRelease', ''); // onPress 
@@ -3095,7 +3104,8 @@ function BUILD_WNP(T) {
                 var org_scrollTo = nico.window.Element.scrollTo;
                 Element.scrollTo = function() { var args = arguments; setTimeout(function() { org_scrollTo.apply(this, args) }, 0.01); };
             }
-            if (browser.mozilla) {
+            // for fix header position. (firefox, mac opera)
+            if (browser.mozilla || browser.opera) {
                 var header = flvplayer.ownerDocument.querySelector('div.bg_headmenu');
                 if (header) {
                     header.style.position = 'absolute';
@@ -4144,9 +4154,9 @@ function BUILD_WNP(T) {
                 self.wnpWindow.setTimeout(function() {
                     var w = self.wnpWindow.open(videoinfo.url, '', 'width=1,height=1,menubar=no,toolbar=no,scrollbars=no,top=0,left=10000');
                     w.blur();
-                    self.wnpWindow.setTimeout(function() { w.close(); postError("closed1?" + w.closed); }, 800);
-                    self.wnpWindow.setTimeout(function() { if (!w.closed) w.close(); postError("closed2?" + w.closed); }, 3000);
-                    self.wnpWindow.setTimeout(function() { if (!w.closed) w.close(); postError("closed3?" + w.closed); }, 10000);
+                    self.wnpWindow.setTimeout(function() { w.close(); }, 800);
+                    self.wnpWindow.setTimeout(function() { if (!w.closed) w.close(); }, 3000);
+                    self.wnpWindow.setTimeout(function() { if (!w.closed) w.close(); }, 10000);
                 }, 5000);
             }
         };
@@ -4755,7 +4765,7 @@ WNP.BUILD_WNP = BUILD_WNP;
     WNP.open = function(playlist, name) {
         var wnpWindow = this.wnp(name);
         if (playlist) {
-            setTimeout(function() {
+            wnpWindow.setTimeout(function() {
                 wnpWindow[Consts.WNP_GLOBAL_NAME].open(playlist);
             }, 50);
         }
@@ -4763,27 +4773,44 @@ WNP.BUILD_WNP = BUILD_WNP;
     WNP.play = function(playlist, name) {
         var wnpWindow = this.wnp(name);
         if (!playlist) playlist = createPlayInfo(document.getElementsByTagName('body')[0]);
-        setTimeout(function() {
+        wnpWindow.setTimeout(function() {
             wnpWindow[Consts.WNP_GLOBAL_NAME].play(playlist);
         }, 50);
     };
-    WNP.add = function(playlist, name, start) {
+    WNP.add = function(playlist, name) {
         var wnpWindow = this.wnp(name);
         if (!playlist) playlist = createPlayInfo(document.getElementsByTagName('body')[0]);
-        setTimeout(function() {
+        wnpWindow.setTimeout(function() {
             wnpWindow[Consts.WNP_GLOBAL_NAME].add(playlist);
         }, 50);
     };
-    WNP.insert = function(playlist, name, start) {
+    WNP.insert = function(playlist, name) {
         var wnpWindow = this.wnp(name);
         if (!playlist) playlist = createPlayInfo(document.getElementsByTagName('body')[0]);
-        setTimeout(function() {
+        wnpWindow.setTimeout(function() {
             wnpWindow[Consts.WNP_GLOBAL_NAME].insert(playlist);
         }, 50);
     };
+    WNP.calcPosition = function() {
+        if (browser.opera) {
+            return { top: 0, left: window.top.innerWidth - WNP.Consts.WNP_INITIAL_PLAYER_WIDTH };
+        }
+        if (browser.webkit) {
+            var top = window.screenTop + 110;
+            var left = window.screenLeft + window.outerWidth - WNP.Consts.WNP_INITIAL_PLAYER_WIDTH - 25;
+            return { top: top, left: left };
+        }
+        if (browser.mozilla) {
+            var top = window.screenY + 110;
+            var left = window.screenX + window.outerWidth - WNP.Consts.WNP_INITIAL_PLAYER_WIDTH - 25;
+            return { top: top, left: left };
+        }
+        return { top: 0, left: (window.innerWidth || ie.clientWidth()) - WNP.Consts.WNP_INITIAL_PLAYER_WIDTH };
+    };
     WNP.wnp = function(name) {
         var loc = 'javascript:void(0)'; /*@cc_on loc = ''; @*/;
-        var w = window.open(loc, name || 'wnp', 'top=0,left=' + ((window.innerWidth || ie.clientWidth()) - WNP.Consts.WNP_INITIAL_PLAYER_WIDTH) + ',width=' + WNP.Consts.WNP_INITIAL_PLAYER_WIDTH + ',height=' +  WNP.Consts.WNP_INITIAL_PLAYER_HEIGHT + ',scrollbars=yes,resizable=yes,menubar=yes,status=no');
+        var pos = this.calcPosition();
+        var w = window.open(loc, name || 'wnp', 'top=' + pos.top + ',left=' + pos.left + ',width=' + WNP.Consts.WNP_INITIAL_PLAYER_WIDTH + ',height=' +  WNP.Consts.WNP_INITIAL_PLAYER_HEIGHT + ',scrollbars=yes,resizable=yes,menubar=yes,status=no');
         var wnp = w.wnp;
         if (wnp == null) {
             var html = WNP.html();
@@ -4900,7 +4927,7 @@ WNP.BUILD_WNP = BUILD_WNP;
         controlPanel.id = 'WNP_CONTAROL_PANEL';
         controlPanel.className = 'wnp_tooltip';
         controlPanel.style.cssText = 'position: fixed; bottom: 5px; right: 5px; width: 228px; z-index: 998; ';
-        var open_href = 'javascript:' + encodeURIComponent('void((' + Consts.WNP_GLOBAL_NAME + ')?' + Consts.WNP_GLOBAL_NAME + '.open("' + location.href + '"):location.href="' + location.href + '")');
+        var open_href = 'javascript:' + encodeURIComponent('void((window.' + Consts.WNP_GLOBAL_NAME + ')?' + Consts.WNP_GLOBAL_NAME + '.open("' + location.href + '"):location.href="' + location.href + '")');
         var title = document.title;
         var panel_html = [
             '<a href="' + open_href + '" title="open WNP" rel="nofollow"><span>open</span></a>',
@@ -4927,11 +4954,90 @@ WNP.BUILD_WNP = BUILD_WNP;
             WNP.showToolTipIfNecessary(e.target);
         }, false);
     }
+    
+    var json = (typeof JSON != 'undefined' ? JSON : null);
+    WNP.parseRequest = function(str) {
+        var req;
+        if (json && isNative(json.parse)) {
+            req =  json.parse(str);
+        }
+        else {
+            // not safe!! use this to the string from trusted domain only.
+            req =  eval('(' + str + ')');
+        }
+        return req;
+    };
+    WNP.serializeRequest = function(command, playlist) {
+        var obj = {
+            command: command,
+            playlist: playlist
+        };
+        // don't use native JSON.stringify for prototype.js (http://d.hatena.ne.jp/Gimite/20091129/1259495440)
+        return toJSON(obj);
+    };
+    
+    if (location.href == Consts.WNP_GATEWAY_URL) {
+        WNP.acceptDomain = function(url) {
+            if (/^http:\/\/\w*[.]?nicovideo\.jp/.test(url)) {
+                return true;
+            }
+            return false;
+        };
+        WNP.receiveMessage = function(e) {
+            if (this.acceptDomain(e.origin)) {
+                var request = this.parseRequest(e.data);
+                if (request) {
+                    switch(request.command) {
+                        case 'open'  : this.open(request.playlist);   break;
+                        case 'play'  : this.play(request.playlist);   break;
+                        case 'add'   : this.add(request.playlist);    break;
+                        case 'insert': this.insert(request.playlist); break;
+                    }
+                }
+            }
+        };
+        window.addEventListener("message", function(e) {
+            WNP.receiveMessage(e);
+        }, false);
+    }
+    if (location.href.indexOf('http://www.nicovideo.jp/') < 0) {
+        
+        var gateway = document.createElement('iframe');
+        gateway.src = Consts.WNP_GATEWAY_URL;
+        gateway.setAttribute('width', '1');
+        gateway.setAttribute('height', '1');
+        gateway.setAttribute('style', 'position: absolute; top: 0; right: 0; display: none;');
+        ready(function() { document.body.appendChild(gateway); });
+        
+        WNP.open = function(playlist) {
+            gateway.contentWindow.postMessage(this.serializeRequest('open', playlist), Consts.WNP_GATEWAY_URL);
+        };
+        WNP.play = function(playlist) {
+            if (!playlist) playlist = createPlayInfo(document.getElementsByTagName('body')[0]);
+            gateway.contentWindow.postMessage(this.serializeRequest('play', playlist), Consts.WNP_GATEWAY_URL);
+        };
+        WNP.add = function(playlist) {
+            if (!playlist) playlist = createPlayInfo(document.getElementsByTagName('body')[0]);
+            gateway.contentWindow.postMessage(this.serializeRequest('add', playlist), Consts.WNP_GATEWAY_URL);
+        };
+        WNP.insert = function(playlist) {
+            if (!playlist) playlist = createPlayInfo(document.getElementsByTagName('body')[0]);
+            gateway.contentWindow.postMessage(this.serializeRequest('insert', playlist), Consts.WNP_GATEWAY_URL);
+        };
+        delete WNP.wnp;
+    }
+    
     window[Consts.WNP_GLOBAL_NAME] = WNP;
 
     // entry point.
     function main() {
-        WNP.init();
+        setTimeout(function() { WNP.init(); }, 0); // delay for customize.
+    }
+    
+    function ready(func) {
+        if (document.getElementsByTagName('body')[0]) func();
+        else if (window.opera) document.addEventListener('DOMContentLoaded', func, false);
+        else                   $e(window).addEventListener('load', func, false);
     }
     
     if (!document.documentElement) return;
@@ -4948,8 +5054,6 @@ WNP.BUILD_WNP = BUILD_WNP;
         }, 50);
     }
     else {
-        if (document.getElementsByTagName('body')[0]) setTimeout(main, 0); // delay for customize.
-        else if (window.opera) document.addEventListener('DOMContentLoaded', main, false);
-        else                   $e(window).addEventListener('load', main, false);
+        ready(main);
     }
 })();
