@@ -3,7 +3,7 @@
 // @description windowised nicovideo player.
 // @author      miya2000
 // @namespace   http://d.hatena.ne.jp/miya2000/
-// @version     1.15
+// @version     1.16
 // @include     http://*.nicovideo.jp/*
 // @exclude     http://www.nicovideo.jp/watch/*
 // @exclude     http://*http*
@@ -110,7 +110,8 @@
         ORG_PLAYER_VIEW_HEIGHT : 384,
         ORG_PLAYER_CONTROL_HEIGHT : 63,
         ORG_PLAYER_MINIMUM_WIDTH  : 561,
-        WNP_GATEWAY_URL : 'http://www.nicovideo.jp/mylist_add/'
+        WNP_GATEWAY_URL : 'http://www.nicovideo.jp/mylist_add/',
+        WNP_LOGIN_PAGE : 'https://secure.nicovideo.jp/secure/login_form'
     }
     WNP.Consts = Consts;
     Consts.svg_xml_base = [
@@ -262,6 +263,8 @@
         '<meta http-equiv="Content-Style-Type" content="text/css">',
         '<meta http-equiv="X-UA-Compatible" content="IE=8">',
         '<title>' + Consts.WNP_TITLE + '</title>',
+        '<link rel="next" href="javascript:void(0)">', // avoid fast forward.
+        '<link rel="prev" href="javascript:void(0)">',
         '<style type="text/css">',
         'html, body, div, p, ul, dl, li, img { margin: 0; padding: 0; border: none; }',
         'html, body {',
@@ -697,7 +700,6 @@
         '    font-family: cursive;',
         '    font-size: 14px;',
         '    font-weight: bold;',
-        '    text-align: center;',
         '    text-decoration: none;',
         '    color: #F0F0F0;',
         '    border-style: solid;',
@@ -714,6 +716,7 @@
         '    display: inline-block;',
         '    width: 50px;', /*@cc_on 'width: 48px;', @*/
         '    height: 24px;',
+        '    text-align: center;',
         '    position: absolute;',
         '    top: 0px;',
         '    margin-top: 3px;',
@@ -1168,7 +1171,7 @@ function BUILD_FUNC(T) {
                 }
             }
         };
-    })()
+    })();
     EventDispatcher.initialize = function(obj) {
         extend(obj, EventDispatcher.prototype);
     };
@@ -1821,9 +1824,11 @@ function BUILD_FUNC(T) {
      */
     var Cookie = {
         get : function(key) {
-            return decodeURIComponent((new RegExp('(?: |^)' + key + '=([^;]*)').exec(document.cookie) || / _ / )[1]);
+            var m = new RegExp('(?: |^)' + key + '=([^;]*)').exec(document.cookie);
+            return m ? decodeURIComponent(m[1]) : '';
         },
         set : function(key, value, expires, path, domain) {
+            /*@cc_on path = path.replace(/[^/]*$/, '') @*/
             document.cookie = key + '=' + encodeURIComponent(value) + 
                 (expires ? ('; expires=' + new Date(expires).toGMTString()) : '') +
                 (path    ? ('; path=' + path) : '') +
@@ -2108,7 +2113,7 @@ function BUILD_FUNC(T) {
             var keyCode = e.keyCode;
             if (keyCode == KeyBind.KEY_MAP.space) return false;
             if (keyCode == KeyBind.KEY_MAP.enter) return false;
-            if (keyCode >= 112 && keyCode <=135) return true; // function keys.
+            if (keyCode >= 112 && keyCode <= 135) return true; // function keys.
             for (var k in KeyBind.KEY_MAP) {
                 if (KeyBind.KEY_MAP[k] == keyCode) return true;
             }
@@ -2903,7 +2908,7 @@ function BUILD_WNP(T) {
                 }
                 // logout check.
                 if (nico.window.User && !nico.window.User.id) {
-                    var event = { type: 'fatal', message : Lang.PLEASE_LOGIN };
+                    var event = { type: 'fatal', message : Lang.PLEASE_LOGIN, logout : true };
                     self.dispatchEvent(event);
                     if (typeof self.onfatal == 'function') try { self.onfatal(event); } catch(e) { postError(e) }
                     return;
@@ -3104,12 +3109,10 @@ function BUILD_WNP(T) {
                 var org_scrollTo = nico.window.Element.scrollTo;
                 Element.scrollTo = function() { var args = arguments; setTimeout(function() { org_scrollTo.apply(this, args) }, 0.01); };
             }
-            // for fix header position. (firefox, mac opera)
-            if (browser.mozilla || browser.opera) {
-                var header = flvplayer.ownerDocument.querySelector('div.bg_headmenu');
-                if (header) {
-                    header.style.position = 'absolute';
-                }
+            // fix header position.
+            var header = flvplayer.ownerDocument.querySelector('div.bg_headmenu');
+            if (header) {
+                header.style.position = 'absolute';
             }
         }
         catch(e) { postError(e) }
@@ -3129,7 +3132,6 @@ function BUILD_WNP(T) {
         this.applyPreferences();
         if (prefs) this.applyPreferences(prefs);
         this.playlist = { items: [], video: {}, title: {}, image: {} };
-        this.isForceFilled = true; // fill on startup.
         this.lastOperationTime = new Date();
         this.lastUpdate = 0;
         this.menuCount = new ListElementIterator(this.wnpWindow.document.getElementById('WNP_MENU_CONTAINER')).count();
@@ -4168,6 +4170,9 @@ function BUILD_WNP(T) {
             self.stop();
             self.wnpWindow.alert(e.message || 'fatal error.');
             self.showStatus((e.message || 'fatal error.'), 5, true);
+            if (e.logout) {
+                open(Consts.WNP_LOGIN_PAGE);
+            }
         };
         this.wnpCore.onfinish = function() {
             if (self.prefs.use_history) {
@@ -4553,7 +4558,7 @@ function BUILD_WNP(T) {
                     'ul.wnp_playlist_items li div.video_desc * { display: none }',
                     'ul.wnp_playlist_items li div.video_desc a { display: inline }',
                 ].join('\n');
-                /*@cc_on IECover.process(function(cover) { simple_style_str += ' ul.wnp_playlist_items li img.wnp_iecover { height: 28px; } ' }); @*/
+                /*@cc_on IECover.process(function() { simple_style_str += ' ul.wnp_playlist_items li img.wnp_iecover { height: 28px; } ' }); @*/
                 var style = addStyle(simple_style_str, this.wnpWindow.document);
                 this._simplePlaylistStyle = style;
             }
