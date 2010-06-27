@@ -3,7 +3,7 @@
 // @description windowised nicovideo player.
 // @author      miya2000
 // @namespace   http://d.hatena.ne.jp/miya2000/
-// @version     1.21
+// @version     1.22
 // @include     http://*.nicovideo.jp/*
 // @exclude     http://www.nicovideo.jp/watch/*
 // @exclude     http://*http*
@@ -2868,8 +2868,8 @@ function BUILD_WNP(T) {
     WNPCore.prototype.alternativeView = function() {
         if (!this.current.isPlaying) return;
         this.current.style = WNPCore.STYLE_ALTERNATE;
-        this._.nicoframe.style.width = '1px';  // minimum viewing.
-        this._.nicoframe.style.height = '1px';
+        this._.nicoframe.style.width = '0px';  // minimum viewing.
+        this._.nicoframe.style.height = '0px';
         this._.container.style.borderWidth = '0';
         this._.loadingbx.style.display = 'none';
         // set alternative element.
@@ -3118,6 +3118,10 @@ function BUILD_WNP(T) {
                 var flvplayer = nico.getPlayer();
                 if (!flvplayer) return;
                 try {
+                    // for load flash.
+                    var p = getAbsolutePosition(flvplayer);
+                    nico.window.scrollTo(p.x, p.y);
+                    
                     if (!flvplayer.ext_isMute()) flvplayer.ext_setMute(1);
                     var status = flvplayer.ext_getStatus();
                     if (status == 'paused') {
@@ -4353,6 +4357,7 @@ function BUILD_WNP(T) {
             if (browser.opera && self.prefs.force_visit_on_opera) {
                 // force visit.
                 self.wnpWindow.setTimeout(function() {
+                    if (self.wnpWindow.closed) return;
                     var w = self.wnpWindow.open(videoinfo.url, '', 'width=1,height=1,menubar=no,toolbar=no,scrollbars=no,top=0,left=10000');
                     w.blur();
                     self.wnpWindow.setTimeout(function() { w.close(); }, 800);
