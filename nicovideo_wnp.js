@@ -3,7 +3,7 @@
 // @description windowised nicovideo player.
 // @author      miya2000
 // @namespace   http://d.hatena.ne.jp/miya2000/
-// @version     1.20
+// @version     1.21
 // @include     http://*.nicovideo.jp/*
 // @exclude     http://www.nicovideo.jp/watch/*
 // @exclude     http://*http*
@@ -931,6 +931,14 @@ function BUILD_FUNC(T) {
     T.IECover = IECover;
     @*/
 
+    function cloneObj(obj, target) {
+        var o = target || {};
+        for (var k in obj) {
+            o[k] = obj[k];
+        }
+        return o;
+    }
+    T.cloneObj = cloneObj;
     function isNative(func) {
         return typeof func == 'function' && /^function\s+\w+\([^)]*?\)\s*\{\s*\[native code\]\s*\}$/.test(func.toString());
     }
@@ -2669,6 +2677,21 @@ function BUILD_WNP(T) {
         }
         catch(e) { }
     };
+    WNPCore.prototype.startPlaying = function() {
+        this.current.isPausing = false;
+        this.startObserving();
+        var flvplayer = this.nico().getPlayer();
+        if (!flvplayer) return;
+        try {
+            flvplayer.ext_setMute(1); // cut first noise.
+            flvplayer.ext_play(1);
+            var self = this;
+            this.timer.setTimeout('start_playing_setmute', function() {
+                self.setMute(self.current.isMute); // turn back.
+            }, 0);
+        }
+        catch(e) { }
+    };
     WNPCore.prototype.setStyle = function(style) {
         if (this.current.style != style) {
             this.current.style = style;
@@ -3252,7 +3275,7 @@ function BUILD_WNP(T) {
         try {
             var nico = this.nico();
             this.current.location = nico.window.location.href; // for video redirect.
-            this.current.videoinfo = nico.window.Video;
+            this.current.videoinfo = cloneObj(nico.window.Video);
             var flvplayer = nico.getPlayer();
             flvplayer.SetVariable('Overlay.onRelease', ''); // onPress 
             flvplayer.SetVariable('Overlay.hitArea', 0);
@@ -3263,7 +3286,7 @@ function BUILD_WNP(T) {
                 this.pause();
             }
             else {
-                this.resume();
+                this.startPlaying();
             }
             if (this.current.volume != null) {
                 this.volumeTo(this.current.volume);
@@ -3274,9 +3297,12 @@ function BUILD_WNP(T) {
                 Element.scrollTo = function() { var args = arguments; setTimeout(function() { org_scrollTo.apply(this, args) }, 0.01); };
             }
             // fix header position.
-            var header = flvplayer.ownerDocument.querySelector('div.bg_headmenu');
+            var header = nico.document.querySelector('div.bg_headmenu');
             if (header) {
-                header.style.position = 'absolute';
+                header.style.position = 'static';
+                header.style.width = '984px';
+                nico.document.body.style.paddingTop = '0px';
+                addStyle('body.mode_2 { padding-top: 0px !important; }', nico.document);
             }
         }
         catch(e) { postError(e) }
@@ -3383,8 +3409,7 @@ function BUILD_WNP(T) {
             var iframe = wnpCore.element.querySelector('.wnp_nicoflame');
             $e(iframe.contentWindow).addEventListener('focus', function(e) { 
                 if (wnpCore.current.style != WNPCore.STYLE_RESTORE) {
-                    self._blur(); // for ie, firefox, chrome.
-                    setTimeout(function() { wnpCore.sight(); }, 10); // for chrome.
+                    setTimeout(function() { self._blur(); wnpCore.sight(); }, 10); // for ie, firefox, chrome.
                 }
             }, false);
         }, false);
@@ -4100,7 +4125,7 @@ function BUILD_WNP(T) {
         this.updatePlaylistURI();
     };
     WNP.prototype.remove = function(item) {
-        this.removePreload(createVideoInfo(createPlayInfo(item)));
+        var info = createVideoInfo(createPlayInfo(item));
         var ul = this.wnpWindow.document.getElementById('WNP_PLAYLIST_ITEMS');
         if (item.parentNode === ul) {
             if (item === this.playlistIterator.item) {
@@ -4110,6 +4135,9 @@ function BUILD_WNP(T) {
                 this.playlistIterator.current(dummy);
             }
             ul.removeChild(item);
+        }
+        if (this.wnpWindow.document.getElementsByName(info.id).length == 0) {
+            this.removePreload(info);
         }
         this.lazyloadThumbnailImagesLater(1000);
         this.updatePlaylistURI();
@@ -4259,7 +4287,7 @@ function BUILD_WNP(T) {
 
         this.timer.setTimeout('play', function() {
             if (preloaded) {
-                self.wnpCore.resume();
+                self.wnpCore.startPlaying();
                 if (self.wnpCore.current.videoLoaded) { // already loaded.
                     self.wnpCore.onload();
                     self.wnpCore.onstart();
