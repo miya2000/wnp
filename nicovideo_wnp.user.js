@@ -3,7 +3,7 @@
 // @description windowised nicovideo player.
 // @author      miya2000
 // @namespace   http://d.hatena.ne.jp/miya2000/
-// @version     1.22
+// @version     1.23
 // @include     http://*.nicovideo.jp/*
 // @exclude     http://www.nicovideo.jp/watch/*
 // @exclude     http://*http*
@@ -106,11 +106,21 @@
         WNP_THUMB_PLACEHOLDER : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEEAAAAyCAIAAACMIyF9AAAAVklEQVRo3u3PAQkAMAwDsPt3OQeXcAuDwhgnFdA2p3q5QSpIp%2F8wMDAwMDAwMDD8b1jyI9llYGBgYGBgYGBgYGBgYBg3LPmR7DIwMDAwMDAwMDAwzBgeCliYGam%2FHsoAAAAASUVORK5CYII%3D',
         WNP_STORAGE_SWF : 'http://github.com/miya2000/wnp/raw/master/storage/wnp.swf',
         WNP_INITIAL_PLAYER_WIDTH  : 610,
-        WNP_INITIAL_PLAYER_HEIGHT : 470,
-        ORG_PLAYER_VIEW_WIDTH  : 544,
-        ORG_PLAYER_VIEW_HEIGHT : 384,
-        ORG_PLAYER_CONTROL_HEIGHT : 63,
-        ORG_PLAYER_MINIMUM_WIDTH  : 561,
+        WNP_INITIAL_PLAYER_HEIGHT : 390,
+        ORG_PLAYER_VIEW_WIDTH     : 672,
+        ORG_PLAYER_VIEW_HEIGHT    : 384,
+        ORG_PLAYER_CONTROL_HEIGHT :  51,
+        ORG_PLAYER_MINIMUM_WIDTH  : 677,
+        // == nicoplayer4  ==
+        ORG_PLAYER4_VIEW_WIDTH     : 672,
+        ORG_PLAYER4_VIEW_HEIGHT    : 384,
+        ORG_PLAYER4_CONTROL_HEIGHT :  51,
+        ORG_PLAYER4_MINIMUM_WIDTH  : 677,
+        // == nicoplayer3 (old player) ==
+        ORG_PLAYER3_VIEW_WIDTH     : 544,
+        ORG_PLAYER3_VIEW_HEIGHT    : 384,
+        ORG_PLAYER3_CONTROL_HEIGHT :  63,
+        ORG_PLAYER3_MINIMUM_WIDTH  : 561,
         WNP_GATEWAY_URL : 'http://www.nicovideo.jp/mylist_add/',
         WNP_LOGIN_PAGE : 'https://secure.nicovideo.jp/secure/login_form'
     }
@@ -1132,19 +1142,13 @@ function BUILD_FUNC(T) {
         }
         if (!title) {
             var videoid = a.href.replace(/.*?watch\/(\w+).*/, '$1');
-            if (document.evaluate) {
-                var aa = $XS('/\/a[contains(@href,"watch/' + videoid + '") and substring-after(@href,"' + videoid + '") = "" and not(descendant::img)]', a.ownerDocument);
-                if (aa) title = (aa.textContent/*@ || aa.innerText || '' @*/).replace(/^\s+|\s+$/g, '');
-            }
-            else {
-                var an = a.ownerDocument.getElementsByTagName('a');
-                var findHref = 'watch/' + videoid;
-                for (var i = 0, len = an.length; i < len; i++) {
-                    var aa = an[i];
-                    if (aa.href.indexOf(findHref) >= 0 && !/<script|<img/i.test(aa.innerHTML)) {
-                        title =  (aa.textContent/*@ || aa.innerText || '' @*/).replace(/^\s+|\s+$/g, '');
-                        if (title) break;
-                    }
+            var an = a.ownerDocument.querySelectorAll('a[href]');
+            var regHref = new RegExp('watch/' + videoid + '(?:[?#]|$)');
+            for (var i = 0, len = an.length; i < len; i++) {
+                var aa = an[i];
+                if (regHref.test(aa.getAttribute('href')) && !/<script|<img/i.test(aa.innerHTML)) {
+                    title =  (aa.textContent/*@ || aa.innerText || '' @*/).replace(/^\s+|\s+$/g, '');
+                    if (title) break;
                 }
             }
         }
@@ -3051,6 +3055,10 @@ function BUILD_WNP(T) {
         return num;
     };
     WNPCore.prototype.startObserveLoad = function() {
+        this.current.loaded = 0;
+        this.current.videoLoaded = false;
+        this.current.videoStarted = false;
+        this.current.videoFinished = false;
         var self = this;
         this._.containerSize = { width: this._.container.offsetWidth, height: this._.container.offsetHeight };
         var retry = 50;
@@ -3082,6 +3090,7 @@ function BUILD_WNP(T) {
                     // over access.
                     var h1Text = h1.textContent || h1.innerText;
                     if (h1Text.indexOf(Lang.OVER_ACCESS) >= 0 && nico.document.title.indexOf(h1Text) < 0) {
+                        self.stop();
                         var event = { type: 'fatal', message : h1Text };
                         self.dispatchEvent(event);
                         if (typeof self.onfatal == 'function') try { self.onfatal(event); } catch(e) { postError(e) }
@@ -3093,6 +3102,14 @@ function BUILD_WNP(T) {
                         var event = { type: 'error', message : h1Text };
                         self.dispatchEvent(event);
                         if (typeof self.onerror == 'function') try { self.onerror(event); } catch(e) { postError(e) }
+                        return;
+                    }
+                    //other
+                    if (nico.document.readyState == 'complete' && !nico.window.Video) {
+                        self.stop();
+                        var event = { type: 'fatal', message : h1Text };
+                        self.dispatchEvent(event);
+                        if (typeof self.onfatal == 'function') try { self.onfatal(event); } catch(e) { postError(e) }
                         return;
                     }
                 }
@@ -3119,9 +3136,10 @@ function BUILD_WNP(T) {
                 if (!flvplayer) return;
                 try {
                     // for load flash.
-                    var p = getAbsolutePosition(flvplayer);
-                    nico.window.scrollTo(p.x, p.y);
-                    
+                    if (self.current.style != WNPCore.STYLE_RESTORE) {
+                        var p = getAbsolutePosition(flvplayer);
+                        nico.window.scrollTo(p.x, p.y);
+                    }
                     if (!flvplayer.ext_isMute()) flvplayer.ext_setMute(1);
                     var status = flvplayer.ext_getStatus();
                     if (status == 'paused') {
@@ -3202,6 +3220,11 @@ function BUILD_WNP(T) {
                 }
                 self.layoutIfNecessary();
                 var flvplayer = nico.getPlayer();
+                if (!flvplayer) {
+                    // reloaded. (player changed?)
+                    self.startObserveLoad();
+                    return;
+                }
                 // start check.
                 if (!self.current.videoStarted) {
                     if (!self.current.isPausing) {
@@ -3280,6 +3303,21 @@ function BUILD_WNP(T) {
             var nico = this.nico();
             this.current.location = nico.window.location.href; // for video redirect.
             this.current.videoinfo = cloneObj(nico.window.Video);
+            
+            // transitional period.
+            if (nico.document.body.innerHTML.indexOf("Cookie.set('player4'") >= 0) {
+                Consts.ORG_PLAYER_VIEW_WIDTH     = Consts.ORG_PLAYER3_VIEW_WIDTH;
+                Consts.ORG_PLAYER_VIEW_HEIGHT    = Consts.ORG_PLAYER3_VIEW_HEIGHT;
+                Consts.ORG_PLAYER_CONTROL_HEIGHT = Consts.ORG_PLAYER3_CONTROL_HEIGHT;
+                Consts.ORG_PLAYER_MINIMUM_WIDTH  = Consts.ORG_PLAYER3_MINIMUM_WIDTH;
+            }
+            else {
+                Consts.ORG_PLAYER_VIEW_WIDTH     = Consts.ORG_PLAYER4_VIEW_WIDTH;
+                Consts.ORG_PLAYER_VIEW_HEIGHT    = Consts.ORG_PLAYER4_VIEW_HEIGHT;
+                Consts.ORG_PLAYER_CONTROL_HEIGHT = Consts.ORG_PLAYER4_CONTROL_HEIGHT;
+                Consts.ORG_PLAYER_MINIMUM_WIDTH  = Consts.ORG_PLAYER4_MINIMUM_WIDTH;
+            }
+            
             var flvplayer = nico.getPlayer();
             flvplayer.SetVariable('Overlay.onRelease', ''); // onPress 
             flvplayer.SetVariable('Overlay.hitArea', 0);
