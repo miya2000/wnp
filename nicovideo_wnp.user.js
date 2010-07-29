@@ -3,7 +3,7 @@
 // @description windowised nicovideo player.
 // @author      miya2000
 // @namespace   http://d.hatena.ne.jp/miya2000/
-// @version     1.23
+// @version     1.24
 // @include     http://*.nicovideo.jp/*
 // @exclude     http://www.nicovideo.jp/watch/*
 // @exclude     http://*http*
@@ -105,17 +105,19 @@
         WNP_IMAGE_OPEN  : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAPCAYAAADkmO9VAAABKklEQVQ4y2NgoCL4%2F%2F8%2FYUWcnJwywcHBeQoKCmYUG8jFxcU3c%2BbMJUCF%2Fy9cuHBFTk5OnxIDuZcuXTrlPxI4e%2FbsQVkgIMdApoULF84BKvjx79%2B%2F%2F0D87%2B%2Ffv%2F9Ahp45c2YLIyOjPCkGMl%2B5cmUe0ICfQPwfZiDITBAbCH7fv3%2F%2FJFCdIkED%2Bfj4GC9evMjw9u3b%2F1jwP2T%2Bu3fvfsrIyOA30NHRkQFoO8ObN2%2BIws3NzYS9DLLV3d2dKEzQyyAXrlq1Kg1o%2B1MofoTEfgxjv3r16jmQvgVSS9CFK1euTANKfAeFPjQS%2FkPZ%2F5DYILwfpJaggSBbQXpA%2BC8omrGwoWZ%2FQHchVgB14WUQBmq8jIN9A0hvR3chVgC0FURpArEWEo3O1gZiJQZ6AAC9TX6jYSwl0gAAAABJRU5ErkJggg%3D%3D',
         WNP_THUMB_PLACEHOLDER : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEEAAAAyCAIAAACMIyF9AAAAVklEQVRo3u3PAQkAMAwDsPt3OQeXcAuDwhgnFdA2p3q5QSpIp%2F8wMDAwMDAwMDD8b1jyI9llYGBgYGBgYGBgYGBgYBg3LPmR7DIwMDAwMDAwMDAwzBgeCliYGam%2FHsoAAAAASUVORK5CYII%3D',
         WNP_STORAGE_SWF : 'http://github.com/miya2000/wnp/raw/master/storage/wnp.swf',
-        WNP_INITIAL_PLAYER_WIDTH  : 610,
-        WNP_INITIAL_PLAYER_HEIGHT : 390,
+        WNP_INITIAL_PLAYER_WIDTH  : 628,
+        WNP_INITIAL_PLAYER_HEIGHT : 410,
         ORG_PLAYER_VIEW_WIDTH     : 672,
         ORG_PLAYER_VIEW_HEIGHT    : 384,
         ORG_PLAYER_CONTROL_HEIGHT :  51,
         ORG_PLAYER_MINIMUM_WIDTH  : 677,
+        ORG_PLAYER_4_3_WIDTH_ADJ  : 120,
         // == nicoplayer4  ==
         ORG_PLAYER4_VIEW_WIDTH     : 672,
         ORG_PLAYER4_VIEW_HEIGHT    : 384,
         ORG_PLAYER4_CONTROL_HEIGHT :  51,
         ORG_PLAYER4_MINIMUM_WIDTH  : 677,
+        ORG_PLAYER4_4_3_WIDTH_ADJ  : 120,
         // == nicoplayer3 (old player) ==
         ORG_PLAYER3_VIEW_WIDTH     : 544,
         ORG_PLAYER3_VIEW_HEIGHT    : 384,
@@ -2762,10 +2764,10 @@ function BUILD_WNP(T) {
             this._.nicoframe.style.width = '100%';
             this._.nicoframe.style.height = '100%';
             var viewW = w; // wmp frame
-            var viewH = Math.floor(viewW * Consts.ORG_PLAYER_VIEW_HEIGHT / Consts.ORG_PLAYER_VIEW_WIDTH);
+            var viewH = Math.floor(viewW * Consts.ORG_PLAYER_VIEW_HEIGHT / (Consts.ORG_PLAYER_VIEW_WIDTH - Consts.ORG_PLAYER_4_3_WIDTH_ADJ));
             if (viewH > h) {
                 viewH = h;
-                viewW = Math.floor(viewH * Consts.ORG_PLAYER_VIEW_WIDTH / Consts.ORG_PLAYER_VIEW_HEIGHT);
+                viewW = Math.floor(viewH * (Consts.ORG_PLAYER_VIEW_WIDTH - Consts.ORG_PLAYER_4_3_WIDTH_ADJ) / Consts.ORG_PLAYER_VIEW_HEIGHT);
             }
             var playerW = Math.max(viewW, Consts.ORG_PLAYER_MINIMUM_WIDTH);
             var playerH = viewH + Consts.ORG_PLAYER_CONTROL_HEIGHT;
@@ -3303,6 +3305,7 @@ function BUILD_WNP(T) {
             var nico = this.nico();
             this.current.location = nico.window.location.href; // for video redirect.
             this.current.videoinfo = cloneObj(nico.window.Video);
+            var flvplayer = nico.getPlayer();
             
             // transitional period.
             if (nico.document.body.innerHTML.indexOf("Cookie.set('player4'") >= 0) {
@@ -3310,15 +3313,21 @@ function BUILD_WNP(T) {
                 Consts.ORG_PLAYER_VIEW_HEIGHT    = Consts.ORG_PLAYER3_VIEW_HEIGHT;
                 Consts.ORG_PLAYER_CONTROL_HEIGHT = Consts.ORG_PLAYER3_CONTROL_HEIGHT;
                 Consts.ORG_PLAYER_MINIMUM_WIDTH  = Consts.ORG_PLAYER3_MINIMUM_WIDTH;
+                Consts.ORG_PLAYER_4_3_WIDTH_ADJ  = 0;
             }
             else {
                 Consts.ORG_PLAYER_VIEW_WIDTH     = Consts.ORG_PLAYER4_VIEW_WIDTH;
                 Consts.ORG_PLAYER_VIEW_HEIGHT    = Consts.ORG_PLAYER4_VIEW_HEIGHT;
                 Consts.ORG_PLAYER_CONTROL_HEIGHT = Consts.ORG_PLAYER4_CONTROL_HEIGHT;
                 Consts.ORG_PLAYER_MINIMUM_WIDTH  = Consts.ORG_PLAYER4_MINIMUM_WIDTH;
+                if (flvplayer.GetVariable('isWide')) {
+                    Consts.ORG_PLAYER_4_3_WIDTH_ADJ = 0;
+                }
+                else {
+                    Consts.ORG_PLAYER_4_3_WIDTH_ADJ = Consts.ORG_PLAYER4_4_3_WIDTH_ADJ;
+                }
             }
             
-            var flvplayer = nico.getPlayer();
             flvplayer.SetVariable('Overlay.onRelease', ''); // onPress 
             flvplayer.SetVariable('Overlay.hitArea', 0);
             this.setCommentOff(this.current.isCommentOff);
