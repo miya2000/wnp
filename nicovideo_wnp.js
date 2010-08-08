@@ -3,7 +3,7 @@
 // @description windowised nicovideo player.
 // @author      miya2000
 // @namespace   http://d.hatena.ne.jp/miya2000/
-// @version     1.24
+// @version     1.25
 // @include     http://*.nicovideo.jp/*
 // @exclude     http://www.nicovideo.jp/watch/*
 // @exclude     http://*http*
@@ -1144,7 +1144,7 @@ function BUILD_FUNC(T) {
         }
         if (!title) {
             var videoid = a.href.replace(/.*?watch\/(\w+).*/, '$1');
-            var an = a.ownerDocument.querySelectorAll('a[href]');
+            var an = a.ownerDocument.querySelectorAll ? a.ownerDocument.querySelectorAll('a[href]') : a.ownerDocument.getElementsByTagName('a');
             var regHref = new RegExp('watch/' + videoid + '(?:[?#]|$)');
             for (var i = 0, len = an.length; i < len; i++) {
                 var aa = an[i];
@@ -5311,16 +5311,17 @@ WNP.BUILD_WNP = BUILD_WNP;
     }
     
     if (!document.documentElement) return;
-    if (location.href.indexOf('http://www.nicovideo.jp/wnp/') === 0 && /^#(?:\w{2})?\d+$/.test(location.hash)) {
+    if (location.href.indexOf('http://www.nicovideo.jp/wnp/') === 0) {
         var videoid = location.hash.replace(/^#/, '');
         // delay for ie8.
         setTimeout(function() {
             var html = WNP.html.build();
             document.open();
             document.write(html);
-            try { d.close(); } catch(e) {}
-            window.WNP.initialize(WNP.Prefs);
-            window.WNP.open(videoid);
+            try { document.close(); } catch(e) {}
+            window.wnp.applyPreferences(WNP.PREFS);
+            window.wnp.applyKeybordShortcut(WNP.SHOPRTCUT);
+            if (videoid) window.WNP.open(videoid);
         }, 50);
     }
     else {
