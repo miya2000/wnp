@@ -3,7 +3,7 @@
 // @description windowised nicovideo player.
 // @author      miya2000
 // @namespace   http://d.hatena.ne.jp/miya2000/
-// @version     1.25
+// @version     1.26
 // @include     http://*.nicovideo.jp/*
 // @exclude     http://www.nicovideo.jp/watch/*
 // @exclude     http://*http*
@@ -530,7 +530,7 @@
         '    font-size: 12px;',
         '}',
         'ul.wnp_playlist_items li a {',
-        '    color: #000;',
+        '    color: #202923;',
         '    text-decoration: none;',
         '}',
         'ul.wnp_playlist_items li a:visited {',
@@ -558,6 +558,9 @@
         '}',
         'div.wnp_player .loop {',
         '    color: yellow !important;',
+        '}',
+        'div.wnp_player ul.wnp_playlist_items li.playing {',
+        '    background-color: #CAE5FF;',
         '}',
         'div.wnp_player ul.wnp_playlist_items li.playing .video_desc {',
         '    font-weight: bold;',
@@ -657,6 +660,7 @@
         '    margin-left: 20px; ',
         '    line-height: 1.2; ',
         '    text-indent: -20px; ',
+        '    color: #202923; ',
         '}',
         'ul.wnp_pref_list li input[type="checkbox"] {',
         '    margin-right: .5em; ',
@@ -1429,7 +1433,7 @@ function BUILD_FUNC(T) {
         }
         var target = [];
         for (var p in this._to) {
-            var start = parseFloat(obj[p]);
+            var start = parseFloat(obj[p]) || 0;
             var m = /(-?[0-9]+\.?([0-9]*))(.*)/.exec(this._to[p]);
             var dest  = parseFloat(m[1]);
             var scale = m[2].length;
@@ -1475,6 +1479,49 @@ function BUILD_FUNC(T) {
         return this;
     }
     T.Soar = Soar;
+    
+    /// class iMarquee - very easy marquee impl.
+    function iMarquee(element) {
+        this.ele = element;
+        this.allowance = 20;
+        this.delay = 16;
+        this.step = 1;
+        this.restart = 2500;
+    }
+    (function(member) { member.apply(iMarquee.prototype) })(function() {
+        this.go = function(firstDelay) {
+            var self = this;
+            var tid = setTimeout(function() {
+                var dist = self.ele.offsetWidth + self.allowance;
+                var cur = parseFloat(self.ele.style.marginLeft) || 0;
+                (function run() {
+                    cur += self.step;
+                    if (cur <= dist) {
+                        self.ele.style.marginLeft = -cur + 'px';
+                        tid = setTimeout(run, self.delay);
+                    }
+                    else {
+                        self.restore();
+                        if (self.restart >= 0) self.go(self.restart);
+                    }
+                })();
+            }, firstDelay || 800);
+            this.activity = {
+                restore: function() {
+                    clearTimeout(tid);
+                    self.ele.style.marginLeft = '';
+                }
+            };
+        };
+        this.restore = function() {
+            if (this.activity) {
+                this.activity.restore();
+                this.activity = null;
+            }
+        };
+    });
+    T.iMarquee = iMarquee;
+    
     /**
      * class ListUtil
      *   append useful features to list element.
@@ -3623,9 +3670,20 @@ function BUILD_WNP(T) {
         listUtil.addEventListener('itemover', function(e) {
             var videoInfo = createVideoInfo(createPlayInfo(e.item));
             self.showStatus(videoInfo.title, 5);
+            if (self.itemMarquee != null) self.itemMarquee.restore();
+            var desc = e.item.querySelector('.video_desc');
+            var title = e.item.querySelector('.video_desc a');
+            if (!title) return;
+            if (desc.clientWidth >= title.offsetWidth) return;
+            self.itemMarquee = new iMarquee(title);
+            self.itemMarquee.go();
         });
         listUtil.addEventListener('itemout', function(e) {
             self.clearStatus();
+            if (self.itemMarquee != null) {
+                self.itemMarquee.restore();
+                self.itemMarquee = null;
+            }
         });
         listUtil.hoverColor = Colors.item_hover;
         listUtil.selectedColor = Colors.item_selected;
@@ -4124,7 +4182,7 @@ function BUILD_WNP(T) {
             '  </a>',
             '</div>',
             '<div class="video_desc">',
-            '  <a href="' + url + '" name="' + info.id + '" title="' + title + '" target="nico_frame">' + title + '</a><br>',
+            '  <span class="video_desc_title"><a href="' + url + '" name="' + info.id + '" title="' + title + '" target="nico_frame">' + title + '</a></span><br>',
             '  <button name="deleteButton">\u00D7</button>',
             '</div>',
         ].join('');
@@ -4497,7 +4555,12 @@ function BUILD_WNP(T) {
     WNP.prototype.next = function() {
         if (this.prefs.loop) this.playlistIterator.next().isNullThenFirst();
         else                 this.playlistIterator.next();
-        this.play();
+        if (this.playlistIterator.item) {
+            this.play();
+        }
+        else {
+            this.stop();
+        }
     };
     WNP.prototype.schedulePrev = function() {
         if (!this.scheduleIterator) {
@@ -4811,8 +4874,8 @@ function BUILD_WNP(T) {
                     'ul.wnp_playlist_items li div.video_info .thumbnail { display: none }',
                     'ul.wnp_playlist_items li div.video_info { width: 10px }',
                     'ul.wnp_playlist_items li { height: 25px }',
-                    'ul.wnp_playlist_items li div.video_desc * { display: none }',
-                    'ul.wnp_playlist_items li div.video_desc a { display: inline }',
+                    'ul.wnp_playlist_items li div.video_desc > * { display: none }',
+                    'ul.wnp_playlist_items li div.video_desc .video_desc_title { display: inline }',
                 ].join('\n');
                 /*@ IECover.process(function() { simple_style_str += ' ul.wnp_playlist_items > li > img.wnp_iecover { height: 31px; } ' }); @*/
                 var style = addStyle(simple_style_str, this.wnpWindow.document);
