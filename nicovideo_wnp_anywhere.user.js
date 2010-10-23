@@ -13,7 +13,8 @@
     
     var WNP_ACCEPT_URL_LIST = [
         'http://fastladder.com/reader/',
-        'http://reader.livedoor.com/reader/'
+        'http://reader.livedoor.com/reader/',
+        'http://www.google.co.jp/search'
     ];
     
     // dispatch routine.
@@ -39,6 +40,12 @@
     function checkWNPInstalled() {
         return typeof WNP != 'undefined' || !!postError("wnp not installed.");
     }
+    var browser = {
+        opera   : (navigator.appName.indexOf("Opera") >= 0),
+        mozilla : (navigator.userAgent.indexOf("Gecko/") >= 0),
+        webkit  : (navigator.userAgent.indexOf("AppleWebKit/") >= 0),
+        ie      : /*@!@*/false
+    };
     function getAbsolutePosition(el) {
         var p = el.offsetParent, x = el.offsetLeft, y = el.offsetTop;
         while (p) {
@@ -338,7 +345,7 @@
                     h = Math.max(h, thumb.offsetHeight);
                 }
             }
-            tooltip.style.left = Math.min(Math.max(x + Math.min(20, w-5), (x + w - width)), (window.innerWidth || ie.clientWidth()) - 190) + 'px';
+            tooltip.style.left = Math.min(Math.max(x + Math.min(20, w-5), (x + w - width)), (window.innerWidth) - 190) + 'px';
             tooltip.style.top  = Math.min(y - 10, y + (h / 2) - 15 - height)  + 'px';
             tooltip.style.display = 'block';
 
