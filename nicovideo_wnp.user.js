@@ -3,7 +3,7 @@
 // @description windowised nicovideo player.
 // @author      miya2000
 // @namespace   http://d.hatena.ne.jp/miya2000/
-// @version     1.27
+// @version     1.50
 // @include     http://*.nicovideo.jp/*
 // @exclude     http://www.nicovideo.jp/watch/*
 // @exclude     http://*http*
@@ -34,6 +34,9 @@
 (function() {
     
     if (typeof window.wnp != 'undefined') return;
+    
+    // Opera12 invokes user.js on window.open() document.
+    if (document.title == 'preparing WNP') return;
     
     var WNP = {};
     
@@ -107,6 +110,12 @@
         WNP_STORAGE_SWF : 'http://miya2000.github.com/storage/wnp.swf',
         WNP_INITIAL_PLAYER_WIDTH  : 628,
         WNP_INITIAL_PLAYER_HEIGHT : 410,
+        // == zero player  ==
+        ORG_PLAYER_ZERO_VIEW_WIDTH     : 908,
+        ORG_PLAYER_ZERO_VIEW_HEIGHT    : 486,
+        ORG_PLAYER_ZERO_CONTROL_HEIGHT :   0,
+        ORG_PLAYER_ZERO_MINIMUM_WIDTH  : 654, // 640 in case of Windows but 654 in Macintosh...
+        ORG_PLAYER_ZERO_4_3_WIDTH_ADJ  :   0,
         // == nicoplayer4  ==
         ORG_PLAYER4_VIEW_WIDTH     : 672,
         ORG_PLAYER4_VIEW_HEIGHT    : 384,
@@ -140,28 +149,30 @@
         '    <image id="mirror" x="10" width="130" height="100" xlink:href="%u%" transform="matrix(1,0,0,-1,0,200)" />',
         '    <rect id="grad" y="100" width="150" height="100" fill="url(#liGrad)" />',
         '</g>',
-        '<g clip-path="url(#clip_txt)" transform="translate(150,50)" font-family="Verdana,sans-serif" font-weight="bold">',
+        '<g id="videoinfo_container" clip-path="url(#clip_txt)" transform="translate(150,50)" font-family="Verdana,sans-serif" font-weight="bold">',
         '    <text y="30" style="font-size: 15px;">%t%',
-        '        <animate attributeName="x" values="0;0;-300" keyTimes="0;0.25;1" dur="10s" repeatDur="indefinite" /> ',
+        '        <animate id="title_anim" attributeName="x" values="0;0;-300" keyTimes="0;0.25;1" dur="10s" repeatDur="indefinite" /> ',
         '    </text>',
         '    <text x="5" y="75" style="font-size: 12px;">%c%</text>',
         '    <g id="videoinfo" style="display: none">',
         '        <text x="5"  y="110" style="font-size: 10px;">\u518D\u751F</text>',
         '        <text x="60" y="110" style="font-size: 10px;" id="count">%vp%</text>',
-//        '        <text x="5"  y="120" style="font-size: 10px;">\u30B3\u30E1\u30F3\u30C8</text>',
-//        '        <text x="60" y="120" style="font-size: 10px;">%vc%</text>',
         '        <text x="5"  y="120" style="font-size: 10px;">\u30DE\u30A4\u30EA\u30B9\u30C8</text>',
         '        <text x="60" y="120" style="font-size: 10px;">%vm%</text>',
+        '        <text x="5"  y="130" style="font-size: 10px;">\u30B3\u30E1\u30F3\u30C8</text>',
+        '        <text x="60" y="130" style="font-size: 10px;">%vc%</text>',
         '    </g>',
         '</g>',
         '<script type="text/javascript">',
         '<![CDATA[',
-        '    if (navigator.userAgent.indexOf("Gecko/") != -1) {',
+        '    if (navigator.userAgent.indexOf("Chrome/") >= 0) {', // Chrome19 cannot display mirror effect.
         '        document.getElementById("mirror").style.display = "none";',
         '        document.getElementById("grad").style.display = "none";',
+        '        document.getElementById("title_anim").parentNode.removeChild(document.getElementById("title_anim"));', // Chrome animates title over clipPath.
         '    }',
-        '    if (navigator.userAgent.indexOf("Safari") != -1) {',
-        '        document.getElementById("mirror").setAttribute("transform", "matrix(1,0,0,-1,0,199)");',
+        '    if (navigator.userAgent.indexOf("Macintosh;") >= 0 && navigator.userAgent.indexOf("Opera/") >= 0) {', // Mac Opera cannot draw text in the element having "clip-path" attribute.
+        '        document.getElementById("videoinfo_container").removeAttribute("clip-path");',
+        '        document.getElementById("title_anim").parentNode.removeChild(document.getElementById("title_anim"));',
         '    }',
         '    if (document.getElementById("count").textContent.length > 0) {',
         '        document.getElementById("videoinfo").style.display = "";',
@@ -258,6 +269,7 @@
     var getValidCssPropertyName = fn.getValidCssPropertyName;
     var $XS = fn.$XS;
     var findVideoTitle = fn.findVideoTitle;
+    var getCanonicalVideoURL = fn.getCanonicalVideoURL;
     var createPlayInfo = fn.createPlayInfo;
     var postError = fn.postError;
     function Extension(processor) {
@@ -334,7 +346,7 @@
         '<meta http-equiv="Content-Script-Type" content="text/javascript">',
         '<meta http-equiv="Content-Style-Type" content="text/css">',
         '<meta http-equiv="X-UA-Compatible" content="IE=8">',
-        '<title>' + Consts.WNP_TITLE + '</title>',
+        '<title>preparing WNP</title>',
         '<link rel="next" href="javascript:void(0)">', // avoid fast forward.
         '<link rel="prev" href="javascript:void(0)">',
         '<style type="text/css">',
@@ -792,6 +804,7 @@
         '    font-family: cursive;',
         '    font-size: 14px;',
         '    font-weight: bold;',
+        '    text-align: left;',
         '    text-decoration: none;',
         '    color: #F0F0F0;',
         '    border-style: solid;',
@@ -833,6 +846,9 @@ function BUILD_FUNC(T) {
         opera   : (navigator.appName.indexOf("Opera") >= 0),
         mozilla : (navigator.userAgent.indexOf("Gecko/") >= 0),
         webkit  : (navigator.userAgent.indexOf("AppleWebKit/") >= 0),
+        chrome  : (navigator.userAgent.indexOf("Chrome/") >= 0),
+        safari  : (navigator.userAgent.indexOf("Safari/") >= 0 && navigator.userAgent.indexOf("Chrome/") < 0),
+        macos   : (navigator.userAgent.indexOf("Macintosh;") >= 0),
         ie      : /*@!@*/false
     };
     T.browser = browser;
@@ -1085,7 +1101,8 @@ function BUILD_FUNC(T) {
     })();
     T.getValidCssPropertyName = getValidCssPropertyName;
     function $XS(xpath, context) {
-        return document.evaluate(xpath,context||document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;
+        var doc = (context && context.ownerDocument) || (context && context.evaluate && context) || document;
+        return doc.evaluate(xpath,context||doc,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;
     }
     T.$XS = $XS;
     function replace (x, y) {
@@ -1132,23 +1149,29 @@ function BUILD_FUNC(T) {
         }
     })();
     T.lastIndexOf = lastIndexOf;
-    function findVideoTitle(a) {
+    function getVideoTitleFromLink(a) {
         var title = '';
-        if (!/<script/i.test(a.innerHTML)) {
-            var title = (a.textContent/*@ || a.innerText || '' @*/).replace(/^\s+|\s+$/g, '');
-            if (!title) {
-                var img = a.getElementsByTagName('img')[0];
-                if (img) title = (img.alt || '').replace(/^\s+|\s+$/g, '');
-            }
+        // process text link only.
+        if (a && !/<script|<img/i.test(a.innerHTML)) {
+            title = (a.textContent/*@ || a.innerText @*/ || '').replace(/^\s+|\s+$/g, '').replace(/^\u8996\u8074\u3059\u308B$/, '');
+        }
+        return title;
+    }
+    T.getVideoTitleFromLink = getVideoTitleFromLink;
+    function findVideoTitle(a) {
+        var title = getVideoTitleFromLink(a);
+        if (!title) {
+            var img = a.getElementsByTagName('img')[0];
+            if (img) title = img.alt || '';
         }
         if (!title) {
             var videoid = a.href.replace(/.*?watch\/(\w+).*/, '$1');
             var an = a.ownerDocument.querySelectorAll ? a.ownerDocument.querySelectorAll('a[href]') : a.ownerDocument.getElementsByTagName('a');
-            var regHref = new RegExp('watch/' + videoid + '(?:[?#]|$)');
+            var regHref = new RegExp('(?:watch/|cc_video_id=)' + videoid + '(?:[?#&]|$)');
             for (var i = 0, len = an.length; i < len; i++) {
                 var aa = an[i];
-                if (regHref.test(aa.getAttribute('href')) && !/<script|<img/i.test(aa.innerHTML)) {
-                    title =  (aa.textContent/*@ || aa.innerText || '' @*/).replace(/^\s+|\s+$/g, '');
+                if (regHref.test(aa.getAttribute('href'))) {
+                    title = getVideoTitleFromLink(aa);
                     if (title) break;
                 }
             }
@@ -1156,6 +1179,21 @@ function BUILD_FUNC(T) {
         return title;
     }
     T.findVideoTitle = findVideoTitle;
+    function getCanonicalVideoURL(a) {
+        var baseURL = 'http://www.nicovideo.jp/watch/';
+        var m;
+        if (m = /http:\/\/www\.nicovideo\.jp\/watch\/(\w+)/.exec(a.href)) {
+            return baseURL + m[1];
+        }
+        else if (m = /http:\/\/rd\.nicovideo\.jp\/cc\/.*\/((?:[a-z]{2})?\d+)/.exec(a.href)) {
+            return baseURL + m[1];
+        }
+        else if (m = /http:\/\/rd\.nicovideo\.jp\/cc\/.*[?&](?:cc_)?video_id=((?:[a-z]{2})?\d+)/.exec(a.href)) {
+            return baseURL + m[1];
+        }
+        return null;
+    }
+    T.getCanonicalVideoURL = getCanonicalVideoURL;
     function createPlayInfo(el) {
         var an = el.getElementsByTagName('a');
         if (an.length == 0 && el.nodeName == 'A') {
@@ -1169,7 +1207,7 @@ function BUILD_FUNC(T) {
             var a = an[i];
             if (a != el && /\bnofollow\b/.test(a.getAttribute('rel'))) continue;
             var m;
-            if (m = /(http:\/\/www\.nicovideo\.jp\/watch\/(\w+))/.exec(a.href)) {
+            if (m = /(http:\/\/www\.nicovideo\.jp\/watch\/(\w+))/.exec(getCanonicalVideoURL(a))) {
                 var videoid = m[2];
                 if (!video[videoid]) {
                     items.push(videoid);
@@ -1183,10 +1221,7 @@ function BUILD_FUNC(T) {
                     image[videoid] = image[videoid] || img.src;
                 }
                 if (!title[videoid]) {
-                    var desc = a.textContent/*@ || a.innerText || '' @*/;
-                    if (!/^\s*http/.test(desc)) {
-                        title[videoid] = desc;
-                    }
+                    title[videoid] = getVideoTitleFromLink(a);
                 }
             }
         }
@@ -1194,12 +1229,12 @@ function BUILD_FUNC(T) {
     }
     T.createPlayInfo = createPlayInfo;
     function createVideoInfo(playInfo, index) {
-        var video_id = playInfo.items[index || 0];
+        var videoid = playInfo.items[index || 0];
         return {
-            id        : video_id,
-            url       : playInfo.video ? playInfo.video[video_id] : null,
-            title     : playInfo.title ? playInfo.title[video_id] : null,
-            thumbnail : playInfo.image ? playInfo.image[video_id] : null
+            id        : videoid,
+            url       : playInfo.video ? playInfo.video[videoid] : null,
+            title     : playInfo.title ? playInfo.title[videoid] : null,
+            thumbnail : playInfo.image ? playInfo.image[videoid] : null
         };
     }
     T.createVideoInfo = createVideoInfo;
@@ -1215,6 +1250,18 @@ function BUILD_FUNC(T) {
         document.getElementsByTagName('body')[0].appendChild(loader);
     }
     T.createPlayInfoFromUrl = createPlayInfoFromUrl;
+    function createVideoInfoFromUrl(url_or_id) {
+        var m = /((?:[a-z]{2})?\d+)([?#].*)?$/.exec(url_or_id);
+        if (!m) return null;
+        var video_id = m[1];
+        return {
+            id        : video_id,
+            url       : 'http://www.nicovideo.jp/watch/' + video_id,
+            title     : null,
+            thumbnail : 'http://tn-skr2.smilevideo.jp/smile?i=' + video_id.slice(2)
+        };
+    }
+    T.createVideoInfoFromUrl = createVideoInfoFromUrl;
     var makeNicoLinks = (function() {
         var makeNicoReg = /(https?:\/\/[-_.!~*()a-zA-Z0-9;\/?:@&=+$,%#]+)|\b([a-z]{2}\d+)|(mylist\/\d+)|(^|\D)(\d{10})(?!\d)/mg;
         return function makeNicoLinks(str) {
@@ -2584,6 +2631,7 @@ function BUILD_WNP(T) {
                 ORG_PLAYER_4_3_WIDTH_ADJ  : 0
             }
         };
+        this.listeners = {}
         this.observeInterval = 500;
         this.emptyView();
         this.timer = new TimerManager(this.element.ownerDocument.defaultView || ie.window(this.element));
@@ -2639,7 +2687,7 @@ function BUILD_WNP(T) {
     };
     WNPCore.prototype.nico = (function() {
         function getPlayer() {
-            return this.document ? this.document.getElementById('flvplayer') : null;
+            return this.document && (this.document.getElementById('external_nicoplayer') || this.document.getElementById('flvplayer')); // for zero.
         }
         return function nico() {
             var nicoWindow   = (this._.nicoframe.parentNode) ? this._.nicoframe.contentWindow : null; // for ie.
@@ -2777,8 +2825,10 @@ function BUILD_WNP(T) {
             var nico = this.nico();
             var flvplayer = nico.getPlayer();
             var p = getAbsolutePosition(flvplayer);
-            if (this.current.size.viewW && this.current.size.viewW < this.current.viewSize.ORG_PLAYER_MINIMUM_WIDTH) {
-                p.x += (this.current.viewSize.ORG_PLAYER_MINIMUM_WIDTH - this.current.size.viewW) / 2;
+            if (this.current.size) {
+                if (this.current.size.viewW && this.current.size.viewW < this.current.viewSize.ORG_PLAYER_MINIMUM_WIDTH) {
+                    p.x += (this.current.viewSize.ORG_PLAYER_MINIMUM_WIDTH - this.current.size.viewW) / 2;
+                }
             }
             nico.window.scrollTo(p.x, p.y);
         }
@@ -2798,17 +2848,21 @@ function BUILD_WNP(T) {
         this.current.isControlShowing = false;
         try {
             // calculate player width, height.
-            var w = this._.container.offsetWidth;
-            var h = this._.container.offsetHeight;
+            var w = this._.container.parentNode.clientWidth; // parentNode's client box is the viewport of container element.
+            var h = this._.container.parentNode.clientHeight;
             this._.nicoframe.style.display = 'none'; // for performance.
             this._.nicoframe.style.visibility = 'hidden'; // for performance.
             this._.nicoframe.style.width = '100%';
             this._.nicoframe.style.height = '100%';
-            var viewW = w; // wmp frame
+            var viewW = w - 3; // for zero (always show left-right border to hide menu by onmouseout.)
             var viewH = Math.floor(viewW * this.current.viewSize.ORG_PLAYER_VIEW_HEIGHT / (this.current.viewSize.ORG_PLAYER_VIEW_WIDTH - this.current.viewSize.ORG_PLAYER_4_3_WIDTH_ADJ));
             if (viewH > h) {
                 viewH = h;
                 viewW = Math.floor(viewH * (this.current.viewSize.ORG_PLAYER_VIEW_WIDTH - this.current.viewSize.ORG_PLAYER_4_3_WIDTH_ADJ) / this.current.viewSize.ORG_PLAYER_VIEW_HEIGHT);
+                // minimum height of zero player.
+                if (viewH < 53) {
+                    viewW = Math.floor(53 * (this.current.viewSize.ORG_PLAYER_VIEW_WIDTH - this.current.viewSize.ORG_PLAYER_4_3_WIDTH_ADJ) / this.current.viewSize.ORG_PLAYER_VIEW_HEIGHT);
+                }
             }
             var playerW = Math.max(viewW, this.current.viewSize.ORG_PLAYER_MINIMUM_WIDTH);
             var playerH = viewH + this.current.viewSize.ORG_PLAYER_CONTROL_HEIGHT;
@@ -2839,31 +2893,80 @@ function BUILD_WNP(T) {
                         try {
                             self._.org_restorePlayer();
                         }
-                        catch(e) { postError(e) }
+                        catch(e) {}
                     }
                 }
                 if (nico.window.restorePlayer !== this._.wnp_restorePlayer) {
                     this._.org_restorePlayer = nico.window.restorePlayer;
                     nico.window.restorePlayer = this._.wnp_restorePlayer;
                 }
-                flvplayer.ext_setVideoSize('fit');
-                flvplayer.style.width = flvplayer.parentNode.style.width = playerW + 'px';    // for scroll.
-                flvplayer.style.height = flvplayer.parentNode.style.height = playerH + 'px';
-
-                // force re-layout.
+                
+                // for zero.
+                if (nico.window.WatchApp) {
+                    var style = nico.document.querySelector('style[title="__WNP_ZERO_PLAYER_FILLVIEW__"]');
+                    if (!style) {
+                        style = addStyle([
+                            'body, #content { overflow : visible !important } ',
+                            '#siteHeader, #videoHeader, #textMarquee, #playlist, #searchResultExplorer, #outline, #playerCommentPanelOuter, #ichibaPanel, .oldTypeHandler, #footer { display : none !important } ',
+                            '#playerContainer { position: absolute !important; top: 0 !important; left: 0 !important; padding: 0 !important; } ',
+                            '#playerContainer, #nicoplayerContainer { height: auto !important; } '
+                        ].join(''), nico.document);
+                        style.setAttribute('title', '__WNP_ZERO_PLAYER_FILLVIEW__');
+                    }
+                    setStyleEnabled(style, true);
+                    var commentBox = this.nico().document.querySelector('#playerContainer .commentOuter');
+                    if (commentBox) { 
+                        commentBox.style.display = 'none';
+                        commentBox.style.width = viewW + 'px';
+                        commentBox.style.left = '0px';
+                        commentBox.style.marginLeft = ((playerW - viewW) / 2) + 'px';
+                    }
+                    
+                    try {
+                        // @see PlayerAreaViewController.prototype.fitHeightForFullScreen()
+                        var PlayerAreaViewController = nico.window.WatchApp.namespace.view.player.PlayerAreaViewController;
+                        if (!PlayerAreaViewController.prototype.__org_getBrowserFullPlayerHeight) {
+                            PlayerAreaViewController.prototype.__org_getBrowserFullPlayerHeight = PlayerAreaViewController.prototype.getBrowserFullPlayerHeight;
+                        }
+                        PlayerAreaViewController.prototype.getBrowserFullPlayerHeight = function() { return viewH; };
+                        if (!PlayerAreaViewController.prototype.__org_getCommentInputHeight) {
+                            PlayerAreaViewController.prototype.__org_getCommentInputHeight = PlayerAreaViewController.prototype.getCommentInputHeight;
+                        }
+                        PlayerAreaViewController.prototype.getCommentInputHeight = function() { return 0; };
+                        if (!PlayerAreaViewController.prototype.__org_changePlayerArea) {
+                            PlayerAreaViewController.prototype.__org_changePlayerArea = PlayerAreaViewController.prototype.changePlayerArea;
+                        }
+                        PlayerAreaViewController.prototype.changePlayerArea = function() { };
+                        var CommentInputViewController = nico.window.WatchApp.namespace.view.player.CommentInputViewController;
+                        if (CommentInputViewController.prototype.__org_show) {
+                            CommentInputViewController.prototype.__org_show = CommentInputViewController.prototype.show;
+                        }
+                        CommentInputViewController.prototype.show = WNPCore.emptyFunc;
+                    }
+                    catch (e) {
+                        postError(e);
+                    }
+                }
+                
                 try {
-                    flvplayer.SetVariable('Stage.scaleMode', 'showAll');
-                    flvplayer.SetVariable('Stage.scaleMode', 'noScale');
+                    flvplayer.ext_setVideoSize('fit');
                 }
                 catch(e) {}
+                
+                // force re-layout.
+                flvplayer.style.width = (playerW + 1) + 'px';
+                flvplayer.style.height = (playerH + 1) + 'px';
+                
+                flvplayer.style.width = flvplayer.parentNode.style.width = playerW + 'px';    // for scroll.
+                flvplayer.style.height = flvplayer.parentNode.style.height = playerH + 'px';
             }
             this._.loadingbx.style.display = 'none';
             // set container's border.
             this._.container.style.borderWidth = 
                 Math.ceil((h - viewH) / 2) + 'px ' + 
-                Math.ceil((w - viewW) / 2 + 1) + 'px ' + // adjust fot player4
+                Math.ceil((w - viewW) / 2 + 3) + 'px ' + // adjust for player4 // for zero (always show left-right border to hide menu by onmouseout.)
                 Math.floor((h - viewH) / 2) + 'px ' + 
-                Math.floor((w - viewW) / 2) + 'px';
+                Math.floor((w - viewW) / 2 + 1) + 'px';
             
             // scroll to player top-left.
             this._.nicoframe.style.display = '';
@@ -2898,6 +3001,34 @@ function BUILD_WNP(T) {
                 nico.window.restorePlayer = this._.org_restorePlayer;
                 delete this._.org_restorePlayer;
             }
+            
+            // for zero.
+            if (nico.window.WatchApp) {
+                var style = nico.document.querySelector('style[title="__WNP_ZERO_PLAYER_FILLVIEW__"]');
+                if (style) {
+                    setStyleEnabled(style, false);
+                }
+                try {
+                    var PlayerAreaViewController = nico.window.WatchApp.namespace.view.player.PlayerAreaViewController;
+                    if (PlayerAreaViewController.prototype.__org_getBrowserFullPlayerHeight) {
+                        PlayerAreaViewController.prototype.getBrowserFullPlayerHeight = PlayerAreaViewController.prototype.__org_getBrowserFullPlayerHeight;
+                    }
+                    if (PlayerAreaViewController.prototype.__org_getCommentInputHeight) {
+                        PlayerAreaViewController.prototype.getCommentInputHeight = PlayerAreaViewController.prototype.__org_getCommentInputHeight;
+                    }
+                    if (PlayerAreaViewController.prototype.__org_changePlayerArea) {
+                        PlayerAreaViewController.prototype.changePlayerArea = PlayerAreaViewController.prototype.__org_changePlayerArea;
+                    }
+                    var CommentInputViewController = nico.window.WatchApp.namespace.view.player.CommentInputViewController;
+                    if (CommentInputViewController.prototype.__org_show) {
+                        CommentInputViewController.prototype.show = CommentInputViewController.prototype.__org_show;
+                    }
+                }
+                catch (e) {
+                    postError(e);
+                }
+            }
+            
             var flvplayer = nico.getPlayer();
             flvplayer.style.width = flvplayer.parentNode.style.width = '';
             flvplayer.style.height = flvplayer.parentNode.style.height = '';
@@ -2915,8 +3046,11 @@ function BUILD_WNP(T) {
     WNPCore.prototype.alternativeView = function() {
         if (!this.current.isPlaying) return;
         this.current.style = WNPCore.STYLE_ALTERNATE;
-        this._.nicoframe.style.width = '0px';  // minimum viewing.
-        this._.nicoframe.style.height = '0px';
+        this._.nicoframe.style.width = '1px';  // minimum viewing.
+        this._.nicoframe.style.height = '1px';
+        if (browser.safari) {
+            this._.nicoframe.style.width = '30px';  // safari cannot load flash in 1px iframe.
+        }
         this._.container.style.borderWidth = '0';
         this._.loadingbx.style.display = 'none';
         // set alternative element.
@@ -2937,8 +3071,10 @@ function BUILD_WNP(T) {
         alterElement.style.margin = alterElement.style.padding = '0';
         alterElement.style.border = 'none';
         alterElement.style.backgroundColor = 'black';
-        this._.loadingbx.replaceChild(alterElement, this._.loadimage);
-        this._.loadimage = alterElement;
+        if (alterElement.parentNode != this._.loadingbx || alterElement != this._.loadimage || alterElement.src != this._.loadimage.src) {
+            this._.loadingbx.replaceChild(alterElement, this._.loadimage);
+            this._.loadimage = alterElement;
+        }
         // set loadingbx border.
         var imageW = alterSize.width || 130;
         var imageH = alterSize.height || 100;
@@ -2968,6 +3104,24 @@ function BUILD_WNP(T) {
         if (this.current.isControlShowing === !!show) return;
         this.current.isControlShowing = !!show;
         var controlHeight = this.current.viewSize.ORG_PLAYER_CONTROL_HEIGHT;
+        // for zero player comment box.
+        if (controlHeight == 0) {
+            var commentBox = this.nico().document.querySelector('#playerContainer .commentOuter');
+            if (commentBox) {
+                if (show) {
+                    commentBox.style.display = 'block';
+                    if (hasClass(commentBox, 'oldType')) {
+                        controlHeight = commentBox.offsetHeight;
+                    }
+                }
+                else {
+                    if (hasClass(commentBox, 'oldType')) {
+                        controlHeight = commentBox.offsetHeight;
+                    }
+                    commentBox.style.display = 'none';
+                }
+            }
+        }
         this.nico().window.scrollBy(0, controlHeight * (show ? 1 : -1));
     };
     WNPCore.prototype.setCommentOff = function(off) {
@@ -3092,12 +3246,28 @@ function BUILD_WNP(T) {
         if (!this.current.isPlaying) return 0;
         return this.current.loaded || 0;
     };
-    WNPCore.prototype.commentNum = function() { // not work on new player.
+    WNPCore.prototype.commentNum = function() {
         if (!this.current.isPlaying) return 0;
+        var watchInfo = this.getWatchInfo();
+        if (watchInfo && watchInfo.commentCount != null) return watchInfo.commentCount;
         var flvplayer = this.nico().getPlayer();
         if (!flvplayer) return 0;
         var num = Number(flvplayer.GetVariable('last_resno'));
         return num;
+    };
+    WNPCore.prototype.getWatchInfo = function() {
+        var nico = this.nico().window;
+        // zero player.
+        if (nico.window.WatchApp) {
+            try {
+                return nico.window.WatchApp.namespace.init.PlayerInitializer.appliInitializer.manager.watchInfoModel;
+            }
+            catch (e) {
+                return null;
+            }
+        }
+        // harajuku compatible.
+        return nico.window.Video;
     };
     WNPCore.prototype.startObserveLoad = function() {
         this.current.loaded = 0;
@@ -3150,7 +3320,7 @@ function BUILD_WNP(T) {
                         return;
                     }
                     //other
-                    if (nico.document.readyState == 'complete' && !nico.window.Video) {
+                    if (nico.document.readyState == 'complete' && !self.getWatchInfo()) {
                         self.stop();
                         var event = { type: 'fatal', message : h1Text };
                         self.dispatchEvent(event);
@@ -3168,7 +3338,8 @@ function BUILD_WNP(T) {
                         return;
                     }
                     // delete check 2.
-                    if (nico.window.Video && nico.window.Video.isDeleted) {
+                    var watchInfo = self.getWatchInfo();
+                    if (watchInfo && watchInfo.isDeleted) {
                         self.stop();
                         var event = { type: 'error', message : 'this video got deleted.' };
                         self.dispatchEvent(event);
@@ -3184,6 +3355,14 @@ function BUILD_WNP(T) {
                     if (self.current.style != WNPCore.STYLE_RESTORE) {
                         var p = getAbsolutePosition(flvplayer);
                         nico.window.scrollTo(p.x, p.y);
+                        // for zero
+                        if (flvplayer.nodeName == 'OBJECT' && self.current.isHiding) {
+                            self.element.style.width = '1px';
+                            self.element.style.height = '1px';
+                            if (browser.safari) {
+                                self._.nicoframe.style.width = '30px';  // safari cannot load flash in 1px iframe. (Supports zero player only on Safari.)
+                            }
+                        }
                     }
                     if (!flvplayer.ext_isMute()) flvplayer.ext_setMute(1);
                     if (flvplayer.ext_getVideoSize() != 'fit') flvplayer.ext_setVideoSize('fit'); // prevent "Full screen mode ...."
@@ -3209,10 +3388,20 @@ function BUILD_WNP(T) {
                 catch(e) {
                     return;
                 }
+                // for redirect.
+                $e(nico.window).addEventListener('unload', self.listeners.unload || (self.listeners.unload = function() {
+                    if (self.current.isPlaying) {
+                        self.loadingStart();
+                        self.layout();
+                        self.startObserveLoad();
+                    }
+                }), false);
+                
                 // stop page observing and go to next state.
                 self.stopObserving();
                 self.current.videoLoaded = true;
                 self.seekTo(0);
+                self.nico().getPlayer().ext_play(0);
                 // wait for ext_setPlayheadTime method works.
                 self.timer.setTimeout('next_observe', function() {
                     // hack for cutting first noise.
@@ -3221,11 +3410,16 @@ function BUILD_WNP(T) {
                     // wait for ext_setPlayheadTime method works.
                     self.timer.setTimeout('next_observe', function() {
                         self.nicoFrameLoaded();
-                        self.startObservePlay();
+                        // delay for first rendering.
+                        if (!self.current.isPausing) {
+                            self.timer.setTimeout('next_observe', function() {
+                                self.startPlaying();
+                            }, 10);
+                        }
                         var event = { type: 'load' };
                         self.dispatchEvent(event);
                         if (self.onload) try { self.onload(event); } catch(e) { postError(e) }
-                    }, 444);
+                    }, 222);
                 }, 444);
             }
             catch (e) {
@@ -3354,8 +3548,9 @@ function BUILD_WNP(T) {
         this.loadingEnd();
         try {
             var nico = this.nico();
+            postError('[nicoFrameLoaded] ' + nico.window.location.href);
             this.current.location = nico.window.location.href; // for video redirect.
-            this.current.videoinfo = cloneObj(nico.window.Video);
+            this.current.videoinfo = cloneObj(this.getWatchInfo());
             var flvplayer = nico.getPlayer();
             
             // transitional period.
@@ -3366,16 +3561,28 @@ function BUILD_WNP(T) {
                 this.current.viewSize.ORG_PLAYER_MINIMUM_WIDTH  = Consts.ORG_PLAYER3_MINIMUM_WIDTH;
                 this.current.viewSize.ORG_PLAYER_4_3_WIDTH_ADJ  = 0;
             }
-            else {
+            else if (nico.document.body.innerHTML.indexOf("zero_lead") >= 0) {
                 this.current.viewSize.ORG_PLAYER_VIEW_WIDTH     = Consts.ORG_PLAYER4_VIEW_WIDTH;
                 this.current.viewSize.ORG_PLAYER_VIEW_HEIGHT    = Consts.ORG_PLAYER4_VIEW_HEIGHT;
                 this.current.viewSize.ORG_PLAYER_CONTROL_HEIGHT = Consts.ORG_PLAYER4_CONTROL_HEIGHT;
                 this.current.viewSize.ORG_PLAYER_MINIMUM_WIDTH  = Consts.ORG_PLAYER4_MINIMUM_WIDTH;
-                if (flvplayer.GetVariable('isWide')) {
+                if (flvplayer.ext_isWide()) {
                     this.current.viewSize.ORG_PLAYER_4_3_WIDTH_ADJ = 0;
                 }
                 else {
                     this.current.viewSize.ORG_PLAYER_4_3_WIDTH_ADJ = Consts.ORG_PLAYER4_4_3_WIDTH_ADJ;
+                }
+            }
+            else {
+                this.current.viewSize.ORG_PLAYER_VIEW_WIDTH     = Consts.ORG_PLAYER_ZERO_VIEW_WIDTH;
+                this.current.viewSize.ORG_PLAYER_VIEW_HEIGHT    = Consts.ORG_PLAYER_ZERO_VIEW_HEIGHT;
+                this.current.viewSize.ORG_PLAYER_CONTROL_HEIGHT = Consts.ORG_PLAYER_ZERO_CONTROL_HEIGHT;
+                this.current.viewSize.ORG_PLAYER_MINIMUM_WIDTH  = Consts.ORG_PLAYER_ZERO_MINIMUM_WIDTH;
+                if (flvplayer.ext_isWide()) {
+                    this.current.viewSize.ORG_PLAYER_4_3_WIDTH_ADJ = 0;
+                }
+                else {
+                    this.current.viewSize.ORG_PLAYER_4_3_WIDTH_ADJ = Consts.ORG_PLAYER_ZERO_4_3_WIDTH_ADJ;
                 }
             }
             
@@ -3384,28 +3591,24 @@ function BUILD_WNP(T) {
             this.setCommentOff(this.current.isCommentOff);
             this.setRepeat(this.current.isRepeat);
             this.setMute(this.current.isMute);
-            if (this.current.isPausing) {
-                this.pause();
-            }
-            else {
-                this.startPlaying();
-            }
             if (this.current.volume != null) {
                 this.volumeTo(this.current.volume);
             }
             // http://orera.g.hatena.ne.jp/miya2000/20090711/p0
             if (browser.opera && nico.window.Element.scrollTo && !/setTimeout/.test(nico.window.Element.scrollTo)) {
                 var org_scrollTo = nico.window.Element.scrollTo;
-                Element.scrollTo = function() { var args = arguments; setTimeout(function() { org_scrollTo.apply(this, args) }, 0.01); };
+                nico.window.Element.scrollTo = function() { var args = arguments; setTimeout(function() { org_scrollTo.apply(this, args) }, 0.01); };
             }
             // fix header position.
-            var header = nico.document.querySelector('div.bg_headmenu');
+            var header = nico.document.querySelector('div.bg_headmenu, #siteHeader');
             if (header) {
                 header.style.position = 'static';
                 header.style.width = '984px';
                 nico.document.body.style.paddingTop = '0px';
                 addStyle('body.mode_2 { padding-top: 0px !important; }', nico.document);
             }
+            // force re-layout for chrome.
+            if (browser.webkit) flvplayer.ext_setVideoSize('normal');
         }
         catch(e) { postError(e) }
         this.layout();
@@ -3511,6 +3714,10 @@ function BUILD_WNP(T) {
             var iframe = wnpCore.element.querySelector('.wnp_nicoflame');
             $e(iframe.contentWindow).addEventListener('focus', function(e) { 
                 if (wnpCore.current.style != WNPCore.STYLE_RESTORE) {
+                    // for zero player comment box.
+                    if (iframe.contentWindow.WatchApp) {
+                        return;
+                    }
                     setTimeout(function() { self._blur(); wnpCore.sight(); }, 10); // for ie, firefox, chrome.
                 }
             }, false);
@@ -3992,13 +4199,8 @@ function BUILD_WNP(T) {
                         self.showMenuItem(self.currentMenuIndex);
                     }, false);
                 }
-                if (browser.mozilla) {
-                    this.showMenuItem(index);
-                }
-                else {
-                    this.menuSoar.to({marginLeft: -(100 * index) + '.0%'}).go(this.wnpWindow);
-                    this.currentMenuIndex = index;
-                }
+                this.menuSoar.to({marginLeft: -(100 * index) + '.0%'}).go(this.wnpWindow);
+                this.currentMenuIndex = index;
             }
         }
     };
@@ -4437,7 +4639,7 @@ function BUILD_WNP(T) {
             var video_id = self.wnpCore.current.videoinfo.id;
             var thumbnail = self.wnpCore.current.videoinfo.thumbnail;
             // jump.
-            if (self.wnpCore.current.videoinfo.id != videoinfo.id) {
+            if (self.wnpCore.current.videoinfo.id != videoinfo.id && self.wnpCore.current.videoinfo.v != videoinfo.id) {
                 var newInfo = self.wnpCore.current.videoinfo;
                 var elements = currentItem.querySelectorAll('.video_link, .thumbnail');
                 for (var i = 0; i < elements.length; i++) {
@@ -4678,7 +4880,7 @@ function BUILD_WNP(T) {
         wnpCore.onload = function() {
             wnpCore.stopObserving();
             // jump.
-            if (wnpCore.current.videoinfo.id != videoinfo.id) {
+            if (wnpCore.current.videoinfo.id != videoinfo.id && wnpCore.current.videoinfo.v != videoinfo.id) {
                 var newInfo = wnpCore.current.videoinfo;
                 var elements = preloadItem.querySelectorAll('.video_link, .thumbnail');
                 for (var i = 0; i < elements.length; i++) {
@@ -5177,6 +5379,7 @@ WNP.BUILD_WNP = BUILD_WNP;
             d.open();
             d.write(html);
             try { d.close(); } catch(e) {}
+            d.title = WNP.Consts.WNP_TITLE;
             w.wnp.applyPreferences(WNP.PREFS);
             w.wnp.applyKeybordShortcut(WNP.SHOPRTCUT);
         }
@@ -5188,15 +5391,20 @@ WNP.BUILD_WNP = BUILD_WNP;
         var tid = null;
         var pls = null;
         return function showToolTipIfNecessary(target) {
-            var a = target;
+            var a = target, aa;
             while(a) {
                 if (a.nodeName == 'A') break;
                 a = a.parentNode;
             }
             if (!a) return;
             var m;
-            if (m = /(http:\/\/www\.nicovideo\.jp\/watch\/(\w+))/.exec(a.href)) {
+            if (m = /http:\/\/www\.nicovideo\.jp\/watch\/(\w+)/.exec(a.href)) {
                 pls = createPlayInfo(a);
+            }
+            else if (m = getCanonicalVideoURL(a)) {
+                aa = a.cloneNode(true);
+                aa.href = m;
+                pls = createPlayInfo(aa);
             }
             else if (/^http:\/\/www\.nicovideo\.jp\/.*/.test(a.href)) {
                 pls = a.href;
@@ -5235,8 +5443,8 @@ WNP.BUILD_WNP = BUILD_WNP;
                 }
             }
 
-            var title = findVideoTitle(a);
-            if (pls.title && !pls.title[pls.items[0]]) {
+            var title = findVideoTitle(aa || a);
+            if (pls.title && !pls.title[pls.items[0]] && title) {
                 pls.title[pls.items[0]] = title;
             }
             var open_href = 'javascript:' + encodeURIComponent('void((window.' + Consts.WNP_GLOBAL_NAME + ')?' + Consts.WNP_GLOBAL_NAME + '.open(' + toJSON(pls) + '):location.href="' + a.href +'")');
@@ -5410,7 +5618,6 @@ WNP.BUILD_WNP = BUILD_WNP;
         else                   $e(window).addEventListener('load', func, false);
     }
     
-    if (!document.documentElement) return;
     if (location.href.indexOf('http://www.nicovideo.jp/wnp/') === 0) {
         var videoid = location.hash.replace(/^#/, '');
         // delay for ie8.
