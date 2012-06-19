@@ -4,9 +4,10 @@ This script can play niconico douga with popup window, supports playlist, etc.
 --
 This script work on 
   Opera 10.x (main browser)
-  Firefox 3.x
-  Google Chrome 3.x
-  Safari 4.x
+  Opera 12.x
+  Firefox 13.x
+  Google Chrome 19.x
+  Safari 5.x (ZeroWatch player only.)
   ie 8.x
 --
 
