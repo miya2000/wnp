@@ -2679,7 +2679,7 @@ function BUILD_WNP(T) {
             '-ms-filter:"progid:DXImageTransform.Microsoft.gradient(GradientType=0,startcolorstr=#899AC2, endcolorstr=#202731))";'
         ].join('');
         dv.innerHTML = [
-            '<div style="position: absolute; margin: 0; padding: 0; border: none; width: 100%; height: 100%; display: none; border-style: solid; ' + boxSizing + ': border-box; ', 'border-color: transparent;">',
+            '<div style="position: absolute; margin: 0; padding: 0; border: none; width: 100%; height: 100%; display: none; border-style: solid; ' + boxSizing + ': border-box; ', 'border-color: #050608 black;">',
             '  <img style="display: none">',
             '  <p style="position:absolute; right: 5px; bottom: 15px; font-size: 30px; font-weight: bold; color: #AAA;"></p>',
             '</div>',
