@@ -3,7 +3,7 @@
 // @description windowised nicovideo player.
 // @author      miya2000
 // @namespace   http://d.hatena.ne.jp/miya2000/
-// @version     1.50
+// @version     1.51
 // @include     http://*.nicovideo.jp/*
 // @exclude     http://www.nicovideo.jp/watch/*
 // @exclude     http://*http*
@@ -135,19 +135,30 @@
         '<?xml version="1.0" encoding="utf-8" ?>',
         '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 380 230">',
         '<defs>',
-        '    <linearGradient id="liGrad" x1="0" y1="0" x2="0" y2="1">',
-        '        <stop offset="0" stop-color="white" stop-opacity="0.2" />',
-        '        <stop offset="0.3" stop-color="white" stop-opacity="1" />',
+        '    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="0">',
+        '        <stop offset="0" stop-color="rgb(220,220,220)" />',
+        '        <stop offset="0.06" stop-color="rgb(240,240,240)" />',
+        '        <stop offset="0.5" stop-color="rgb(250,250,255)" />',
+        '        <stop offset="0.85" stop-color="rgb(230,230,230)"  />',
+        '        <stop offset="1" stop-color="rgb(210,210,210)"  />',
         '    </linearGradient>',
+        // http://kyle-in-jp.blogspot.jp/2008/11/librsvg.html
+        '    <filter id="imgFilter">',
+        '        <feGaussianBlur stdDeviation="2" in="SourceAlpha" />',
+        '        <feOffset dx="3" dy="3" />',
+        '        <feColorMatrix type="matrix" values="0 0 0 0 0.4, 0 0 0 0 0.4, 0 0 0 0 0.4, 0 0 0 1 0" result="shadow" />',
+        '        <feComposite in="SourceGraphic" in2="shadow" operator="over"/>',
+        '    </filter>',
+        '    <mask id="imgMask" maskUnits="userSpaceOnUse" x="10" y="0" width="130" height="100">',
+        '        <rect x="10" y="0" width="130" height="100" rx="3" ry="3" fill="#ffffff"/>',
+        '    </mask>',
         '    <clipPath id="clip_txt">',
         '        <path d="m 0 0 h 220 v 150 h -220 v -150 z" />',
         '    </clipPath>',
         '</defs>',
-        '<rect width="380" height="250" fill="white" />',
-        '<g transform="translate(0,50)">',
-        '    <image x="10" width="130" height="100" xlink:href="%u%" />',
-        '    <image id="mirror" x="10" width="130" height="100" xlink:href="%u%" transform="matrix(1,0,0,-1,0,200)" />',
-        '    <rect id="grad" y="100" width="150" height="100" fill="url(#liGrad)" />',
+        '<rect id="background" width="380" height="250" fill="url(#bgGrad)" />',
+        '<g transform="translate(0,50)" filter="url(#imgFilter)">',
+        '    <image x="10" width="130" height="100" xlink:href="%u%" mask="url(#imgMask)" />',
         '</g>',
         '<g id="videoinfo_container" clip-path="url(#clip_txt)" transform="translate(150,50)" font-family="Verdana,sans-serif" font-weight="bold">',
         '    <text y="30" style="font-size: 15px;">%t%',
@@ -166,8 +177,7 @@
         '<script type="text/javascript">',
         '<![CDATA[',
         '    if (navigator.userAgent.indexOf("Chrome/") >= 0) {', // Chrome19 cannot display mirror effect.
-        '        document.getElementById("mirror").style.display = "none";',
-        '        document.getElementById("grad").style.display = "none";',
+        '        document.getElementById("background").setAttribute("fill", "rgb(255,253,250)");',
         '        document.getElementById("title_anim").parentNode.removeChild(document.getElementById("title_anim"));', // Chrome animates title over clipPath.
         '    }',
         '    if (navigator.userAgent.indexOf("Macintosh;") >= 0 && navigator.userAgent.indexOf("Opera/") >= 0) {', // Mac Opera cannot draw text in the element having "clip-path" attribute.
@@ -675,6 +685,9 @@
         '.wnp_pref_separator {',
         '    margin: 0.5em 10px 0.5em 15px; ',
         '}',
+        '.alternative_view {',
+        //'    box-shadow: 7px 7px 0px 0px rgba(10,10,10,1);',
+        '}',
         '</style>',
         new ExtensionPoint('style'),
         '</head>',
@@ -1167,7 +1180,7 @@ function BUILD_FUNC(T) {
         if (!title) {
             var videoid = a.href.replace(/.*?watch\/(\w+).*/, '$1');
             var an = a.ownerDocument.querySelectorAll ? a.ownerDocument.querySelectorAll('a[href]') : a.ownerDocument.getElementsByTagName('a');
-            var regHref = new RegExp('(?:watch/|cc_video_id=)' + videoid + '(?:[?#&]|$)');
+            var regHref = new RegExp('(?:watch/|cc_video_id=|video_id=|cc_id=)' + videoid + '(?:[?#&]|$)');
             for (var i = 0, len = an.length; i < len; i++) {
                 var aa = an[i];
                 if (regHref.test(aa.getAttribute('href'))) {
@@ -1182,14 +1195,19 @@ function BUILD_FUNC(T) {
     function getCanonicalVideoURL(a) {
         var baseURL = 'http://www.nicovideo.jp/watch/';
         var m;
+        var videoid;
         if (m = /http:\/\/www\.nicovideo\.jp\/watch\/(\w+)/.exec(a.href)) {
-            return baseURL + m[1];
+            videoid = m[1];
         }
-        else if (m = /http:\/\/rd\.nicovideo\.jp\/cc\/.*\/((?:[a-z]{2})?\d+)/.exec(a.href)) {
-            return baseURL + m[1];
+        else if (m = /http:\/\/rd\.nicovideo\.jp\/cc\/.*\/([a-z]{2}?\d+|\d{10})(?:[?#]|$)/.exec(a.href)) {
+            videoid = m[1];
         }
-        else if (m = /http:\/\/rd\.nicovideo\.jp\/cc\/.*[?&](?:cc_)?video_id=((?:[a-z]{2})?\d+)/.exec(a.href)) {
-            return baseURL + m[1];
+        else if (m = /http:\/\/rd\.nicovideo\.jp\/cc\/.*[?&](?:cc_video_id|video_id|cc_id)=((?:[a-z]{2})?\d+)/.exec(a.href)) {
+            videoid = m[1];
+        }
+        // skip niconama.
+        if (videoid && videoid.lastIndexOf('lv', 0) != 0) {
+            return baseURL + videoid;
         }
         return null;
     }
@@ -2644,16 +2662,24 @@ function BUILD_WNP(T) {
             boxSizing + ': border-box;', 
             'width: 100%; height: 100%;',
             'color: white;',
-            'background-color: #4F586D;',
+            'background-color: #202731;',
             'margin: 0; padding: 0;',
             'border-style: solid;',
             'border-color: #050608 black;',
             'border-width: 0;',
             'overflow: hidden;',
-            'position: relative;'
+            'position: relative;',
+            // http://ie.microsoft.com/testdrive/Graphics/CSSGradientBackgroundMaker/
+            'background-image: -ms-linear-gradient(top, #899AC2 0%, #202731 100%);',
+            'background-image: -moz-linear-gradient(top, #899AC2 0%, #202731 100%);',
+            'background-image: -o-linear-gradient(top, #899AC2 0%, #202731 100%);',
+            'background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0, #899AC2), color-stop(1, #202731));',
+            'background-image: -webkit-linear-gradient(top, #899AC2 0%, #202731 100%);',
+            'background-image: linear-gradient(to bottom, #899AC2 0%, #202731 100%);',
+            '-ms-filter:"progid:DXImageTransform.Microsoft.gradient(GradientType=0,startcolorstr=#899AC2, endcolorstr=#202731))";'
         ].join('');
         dv.innerHTML = [
-            '<div style="position: absolute; margin: 0; padding: 0; border: none; width: 100%; height: 100%; display: none; border-style: solid; ' + boxSizing + ': border-box; ', 'border-color: #050608 black;">',
+            '<div style="position: absolute; margin: 0; padding: 0; border: none; width: 100%; height: 100%; display: none; border-style: solid; ' + boxSizing + ': border-box; ', 'border-color: transparent;">',
             '  <img style="display: none">',
             '  <p style="position:absolute; right: 5px; bottom: 15px; font-size: 30px; font-weight: bold; color: #AAA;"></p>',
             '</div>',
@@ -2854,7 +2880,7 @@ function BUILD_WNP(T) {
             this._.nicoframe.style.visibility = 'hidden'; // for performance.
             this._.nicoframe.style.width = '100%';
             this._.nicoframe.style.height = '100%';
-            var viewW = w - 3; // for zero (always show left-right border to hide menu by onmouseout.)
+            var viewW = Math.max(w - 3, 0); // for zero (always show left-right border to hide menu by onmouseout.)
             var viewH = Math.floor(viewW * this.current.viewSize.ORG_PLAYER_VIEW_HEIGHT / (this.current.viewSize.ORG_PLAYER_VIEW_WIDTH - this.current.viewSize.ORG_PLAYER_4_3_WIDTH_ADJ));
             if (viewH > h) {
                 viewH = h;
@@ -3078,11 +3104,11 @@ function BUILD_WNP(T) {
         // set loadingbx border.
         var imageW = alterSize.width || 130;
         var imageH = alterSize.height || 100;
-        var w = this._.container.offsetWidth, h = this._.container.offsetHeight;
-        var viewW = w - 30; // fine adjustment.
+        var w = this._.container.parentNode.clientWidth, h = this._.container.parentNode.clientHeight;
+        var viewW = Math.max(w - 30, 0); // fine adjustment.
         var viewH = Math.floor(viewW * imageH / imageW);
-        if (viewH > h) {
-            viewH = h;
+        if (viewH > (h -20)) {  // always show top bottom border.
+            viewH = Math.max(h - 20, 0);
             viewW = Math.floor(viewH * imageW / imageH);
         }
         this._.loadingbx.style.borderWidth = 
@@ -3410,6 +3436,7 @@ function BUILD_WNP(T) {
                     // wait for ext_setPlayheadTime method works.
                     self.timer.setTimeout('next_observe', function() {
                         self.nicoFrameLoaded();
+                        self.startObservePlay();
                         // delay for first rendering.
                         if (!self.current.isPausing) {
                             self.timer.setTimeout('next_observe', function() {
@@ -4631,9 +4658,9 @@ function BUILD_WNP(T) {
                 self.next();
             }, self.prefs.video_timeout * 1000);
             // show actual title.
+            title = self.wnpCore.current.videoinfo.title;
+            self.wnpWindow.document.title = title + ' - ' + Consts.WNP_TITLE;
             if (!title || title == videoinfo.id || self.wnpCore.current.videoinfo.id != videoinfo.id) {
-                title = self.wnpCore.current.videoinfo.title;
-                self.wnpWindow.document.title = title + ' - ' + Consts.WNP_TITLE;
                 self.showStatus(title, 5);
             }
             var video_id = self.wnpCore.current.videoinfo.id;
@@ -4953,6 +4980,7 @@ function BUILD_WNP(T) {
     WNP.prototype.setAlternativeView = function(info, wnpCore) {
         var iframe = this.wnpWindow.document.createElement('iframe');
         iframe.setAttribute('scrolling', 'no');
+        iframe.className = 'alternative_view';
         this.alternativeView = iframe;
         this.updateAlternativeView(info);
         (wnpCore || this.wnpCore).setAlternativeView(iframe, 380, 230);
