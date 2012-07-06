@@ -3,7 +3,7 @@
 // @description windowised nicovideo player.
 // @author      miya2000
 // @namespace   http://d.hatena.ne.jp/miya2000/
-// @version     1.51
+// @version     1.52
 // @include     http://*.nicovideo.jp/*
 // @exclude     http://www.nicovideo.jp/watch/*
 // @exclude     http://*http*
@@ -3303,6 +3303,7 @@ function BUILD_WNP(T) {
         var self = this;
         this._.containerSize = { width: this._.container.offsetWidth, height: this._.container.offsetHeight };
         var retry = 50;
+        var last_fit = -1;
         this.timer.setInterval('observe', function() {
             try {
                 var nico = self.nico();
@@ -3391,7 +3392,6 @@ function BUILD_WNP(T) {
                         }
                     }
                     if (!flvplayer.ext_isMute()) flvplayer.ext_setMute(1);
-                    if (flvplayer.ext_getVideoSize() != 'fit') flvplayer.ext_setVideoSize('fit'); // prevent "Full screen mode ...."
                     var status = flvplayer.ext_getStatus();
                     if (status == 'paused') {
                         flvplayer.ext_play(1);
@@ -3404,6 +3404,11 @@ function BUILD_WNP(T) {
                             flvplayer.ext_play(1);
                         }
                         return;
+                    }
+                    // set fullscrren preliminarily to hide "Full screen mode ...."
+                    if (flvplayer.ext_getVideoSize() != 'fit') {
+                        flvplayer.ext_setVideoSize('fit');
+                        last_fit = new Date().getTime();
                     }
                     // video start check.
                     var headTime = Number(flvplayer.ext_getPlayheadTime());
@@ -3428,6 +3433,13 @@ function BUILD_WNP(T) {
                 self.current.videoLoaded = true;
                 self.seekTo(0);
                 self.nico().getPlayer().ext_play(0);
+                
+                // delay to hide "Full screen mode ...." if fullscreen mode.
+                var delay = 222;
+                if (self.current.style == WNPCore.STYLE_FILL) {
+                    delay = Math.max(3500 - (new Date().getTime() - last_fit), delay);
+                }
+                
                 // wait for ext_setPlayheadTime method works.
                 self.timer.setTimeout('next_observe', function() {
                     // hack for cutting first noise.
@@ -3446,7 +3458,7 @@ function BUILD_WNP(T) {
                         var event = { type: 'load' };
                         self.dispatchEvent(event);
                         if (self.onload) try { self.onload(event); } catch(e) { postError(e) }
-                    }, 222);
+                    }, delay);
                 }, 444);
             }
             catch (e) {
@@ -3634,8 +3646,6 @@ function BUILD_WNP(T) {
                 nico.document.body.style.paddingTop = '0px';
                 addStyle('body.mode_2 { padding-top: 0px !important; }', nico.document);
             }
-            // force re-layout for chrome.
-            if (browser.webkit) flvplayer.ext_setVideoSize('normal');
         }
         catch(e) { postError(e) }
         this.layout();
